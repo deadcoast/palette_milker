@@ -1,0 +1,229 @@
+/* milky_color_suite/app.tcss (Optional) */
+
+Screen {
+    /* Grid layout example */
+    grid-size: 2;
+    grid-gutter: 1 2;
+    grid-columns: 30 1fr; /* Sidebar 30 cells, main takes rest */
+    grid-rows: auto 1fr 8; /* Header auto, content flex, palette 8 rows */
+    background: $panel;
+    color: $text;
+}
+
+#app-grid {
+    grid-column: 1 / 3; /* Span both columns */
+    grid-row: 2;        /* Middle row */
+    border: thick $accent;
+    display: grid; /* Use grid for app content area */
+    grid-columns: 30 1fr;
+    grid-rows: 1fr auto; /* Main area flex, palette fixed */
+}
+
+#sidebar-container {
+    grid-column: 1;
+    grid-row: 1 / 3; /* Span both rows */
+    border: thick $accent;
+    padding: 1;
+}
+
+#main-and-palette {
+    grid-column: 2;
+    grid-row: 1 / 3; /* Span both rows */
+    display: grid;
+    grid-rows: 1fr auto; /* Main content flex, palette fixed */
+}
+
+
+#main-container {
+    grid-row: 1;
+    padding: 1;
+    border: thick $accent;
+}
+
+#palette-container {
+    grid-row: 2;
+    height: 10; /* Example fixed height */
+    border: thick $accent;
+    padding: 1;
+}
+
+
+Header {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    border: thick $accent;
+}
+
+Footer {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    border: thick $accent;
+}
+
+/* Style other widgets as needed */
+Button {
+    min-width: 8;
+    border: thick $secondary;
+}
+
+Input {
+    border: thick $accent;
+}
+
+/*
+Palette Milker CSS - Styling for the ASCII-art themed color palette manager
+*/
+
+/* Main layout */
+#main-container {
+    layout: horizontal;
+    width: 100%;
+    height: 100%;
+}
+
+/* Left sidebar */
+#left-sidebar {
+    width: 15;
+    height: 100%;
+    background: $surface;
+    color: $text;
+}
+
+.sidebar-header-top,
+.sidebar-header,
+.sidebar-header-bottom {
+    width: 100%;
+    height: 1;
+}
+
+.browse-section-header {
+    width: 100%;
+    height: 1;
+    color: $accent;
+}
+
+.browse-item {
+    width: 100%;
+    height: 1;
+    hover-background: $primary-darken-2;
+    hover-color: $text-highlight;
+}
+
+.browse-spacer {
+    width: 100%;
+    height: 1;
+}
+
+/* Main content area */
+#main-content {
+    width: 1fr;
+    height: 100%;
+    layout: vertical;
+}
+
+/* ColorWheel widget */
+ColorWheel {
+    width: 100%;
+    height: 20;
+    margin: 0 0 1 0;
+}
+
+ColorWheel .header {
+    background: $primary;
+    color: $text;
+}
+
+ColorWheel .color-grid {
+    background: $surface;
+    min-height: 15;
+}
+
+ColorWheel .footer {
+    background: $surface-lighten-1;
+}
+
+/* Palette Management */
+PaletteManagement {
+    width: 100%;
+    height: 1fr;
+}
+
+PaletteManagement .header {
+    background: $surface;
+    color: $text;
+}
+
+PaletteManagement .color-buttons {
+    margin: 1 0;
+}
+
+PaletteManagement .active-palette {
+    color: $accent;
+}
+
+PaletteManagement .inactive-palette {
+    color: $text-muted;
+}
+
+/* ColorSlot */
+ColorSlot {
+    margin: 0 1 0 0;
+}
+
+ColorSlot.active {
+    border: solid $accent;
+}
+
+/* PaletteSelector */
+PaletteSelector {
+    margin: 1 0;
+}
+
+PaletteSelector .active-palette {
+    color: $accent;
+}
+
+PaletteSelector .inactive-palette {
+    color: $text-muted;
+    hover-color: $text;
+}
+
+/* PaletteControls */
+PaletteControls {
+    height: 1;
+    margin: 1 0;
+}
+
+PaletteControls Button {
+    background: $primary-darken-1;
+    color: $text;
+}
+
+/* Dialog styling */
+PaletteNameDialog {
+    align: center middle;
+    background: $surface;
+    border: thick $primary;
+}
+
+.dialog-title {
+    text-align: center;
+    background: $primary;
+    color: $text;
+}
+
+/* Static widget for ASCII art */
+Static {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+/* Custom colors for theme elements */
+$accent: #FF5500;
+$primary: #333333;
+$primary-darken-1: #222222;
+$primary-darken-2: #111111;
+$surface: #222222;
+$surface-lighten-1: #2a2a2a;
+$text-highlight: #FFFFFF;
