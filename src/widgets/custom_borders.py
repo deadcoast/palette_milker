@@ -7,14 +7,7 @@ ASCII-art style while being fully dynamic and compatible with Textual's widget s
 
 from typing import List
 from typing import Optional
-from typing import Sequence
 
-from rich.console import Console
-from rich.console import ConsoleOptions
-from rich.console import RenderResult
-from rich.segment import Segment
-from rich.style import Style
-from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.containers import Horizontal
@@ -40,7 +33,7 @@ class BorderBox(Static):
         title: str = "",
         border_style: str = "single",
         widget_id: Optional[str] = None,
-        classes: Optional[str] = None
+        classes: Optional[str] = None,
     ) -> None:
         """
         Initialize a BorderBox with custom borders.
@@ -103,7 +96,7 @@ class BorderBox(Static):
                 "single_top_right": "┐",
                 "single_bottom_left": "└",
                 "single_bottom_right": "┘",
-            }
+            },
         }
 
     def compose(self) -> ComposeResult:
@@ -129,11 +122,11 @@ class BorderBox(Static):
             title_text = f" {self.title} "
             title_start = (width - len(title_text)) // 2
             top_border = (
-                chars["top_left"] +
-                chars["horizontal"] * title_start +
-                title_text +
-                chars["horizontal"] * (width - 2 - title_start - len(title_text)) +
-                chars["top_right"]
+                chars["top_left"]
+                + chars["horizontal"] * title_start
+                + title_text
+                + chars["horizontal"] * (width - 2 - title_start - len(title_text))
+                + chars["top_right"]
             )
 
         # Get the content from child containers
@@ -180,11 +173,7 @@ class ColorButton(Widget):
     """
 
     def __init__(
-        self,
-        color: str = "",
-        active: bool = False,
-        widget_id: Optional[str] = None,
-        classes: Optional[str] = None
+        self, color: str = "", active: bool = False, widget_id: Optional[str] = None, classes: Optional[str] = None
     ):
         """
         Initialize a color button.
@@ -224,13 +213,7 @@ class DoubleHeaderBox(Container):
     }
     """
 
-    def __init__(
-        self,
-        title: str,
-        *children,
-        widget_id: Optional[str] = None,
-        classes: Optional[str] = None
-    ):
+    def __init__(self, title: str, *children, widget_id: Optional[str] = None, classes: Optional[str] = None):
         """
         Initialize a box with a double-line header.
 
@@ -257,12 +240,7 @@ class DoubleHeaderBox(Container):
 class PaletteManagement(Container):
     """A palette management widget that matches the ASCII design."""
 
-    def __init__(
-        self,
-        palette_name: str = "Default",
-        widget_id: Optional[str] = None,
-        classes: Optional[str] = None
-    ):
+    def __init__(self, palette_name: str = "Default", widget_id: Optional[str] = None, classes: Optional[str] = None):
         """
         Initialize the palette management widget.
 
@@ -284,17 +262,21 @@ class PaletteManagement(Container):
         # Color buttons row
         with Horizontal(id="color-buttons"):
             for i in range(8):
-                is_active = (i == 0)  # First button is active by default
+                is_active = i == 0  # First button is active by default
                 yield ColorButton(color="", active=is_active, widget_id=f"color-{i}")
 
         # Palette controls
-        yield Static(f"╠════════════════╗     Palette: {self.palette_name.ljust(20)}[Add New] [Rename] [Delete]",
-                    classes="palette-controls")
+        controls_text = f"╠════════════════╗     Palette: {self.palette_name.ljust(20)}[Add New] [Rename] [Delete]"
+        yield Static(controls_text, classes="palette-controls")
 
         # Active palette
-        yield Static(f"├─♢{self.palette_name.ljust(14)}╠┬────────────────┬────────────────┬────────────────┬────────────────┐",
-                    classes="active-palette")
+        active_palette_text = (
+            f"├─♢{self.palette_name.ljust(14)}╠┬────────────────┬────────────────┬────────────────┬────────────────┐"
+        )
+        yield Static(active_palette_text, classes="active-palette")
 
         # Empty palette slots
-        yield Static("╠════════════════╝├─               ├─               ├─               ├─               │",
-                    classes="inactive-palette")
+        yield Static(
+            "╠════════════════╝├─               ├─               ├─               ├─               │",
+            classes="inactive-palette",
+        )

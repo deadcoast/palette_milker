@@ -5,11 +5,8 @@ This module provides utility functions for color manipulation, generation,
 and import/export operations.
 """
 
-import math
 import random
 from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import Union
 
 from ..models.color_model import Color
@@ -77,15 +74,15 @@ def generate_harmonic_palette(
 
     elif harmony_type == "monochromatic":
         # Generate monochromatic variations
-        h, s, l = base_color.hsl
+        h, s, lightness = base_color.hsl
 
         # Vary lightness for monochromatic scheme
         for i in range(count - len(palette)):
             # Distribute lightness values evenly
-            new_l = 10 + (i * 80 / (count - 1))
+            new_lightness = 10 + (i * 80 / (count - 1))
 
             # Create new color with same hue/saturation but different lightness
-            new_color = Color({"h": h, "s": s, "l": new_l})
+            new_color = Color({"h": h, "s": s, "l": new_lightness})
             palette.append(new_color)
 
     elif harmony_type == "random":
@@ -93,8 +90,8 @@ def generate_harmonic_palette(
         for _ in range(count - len(palette)):
             h = random.randint(0, 360)
             s = random.randint(60, 100)
-            l = random.randint(30, 70)
-            palette.append(Color({"h": h, "s": s, "l": l}))
+            lightness = random.randint(30, 70)
+            palette.append(Color({"h": h, "s": s, "l": lightness}))
 
     elif harmony_type == "tetradic":
         # Add tetradic colors
@@ -182,6 +179,8 @@ def import_colors_from_image(image_path: str, count: int = 8, method: str = "dom
         ValueError: If the image cannot be processed
     """
     try:
+        # Optional dependencies - imported at runtime
+        # pip install numpy pillow
         import numpy as np
         from PIL import Image
     except ImportError as e:
@@ -197,6 +196,8 @@ def import_colors_from_image(image_path: str, count: int = 8, method: str = "dom
             return _extracted_from_import_colors_from_image_37(img, np, count)
         elif method == "kmeans":
             try:
+                # Optional dependency - imported at runtime
+                # pip install scikit-learn
                 from sklearn.cluster import KMeans
             except ImportError as exc:
                 raise ImportError(

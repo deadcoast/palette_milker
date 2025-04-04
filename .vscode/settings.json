@@ -146,5 +146,12 @@
     "notebook.output.textLineLimit": 20,
     "notebook.compactView": false,
     "notebook.diff.ignoreMetadata": true,
-    "notebook.diff.ignoreOutputs": true
+    "notebook.diff.ignoreOutputs": true,
+    "markdown.validate.ignoredLinks": [
+        "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Design%20a%20Layout.md",
+        "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Center%20things.md",
+        "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Style%20Inline%20Apps.md",
+        "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Package%20a%20Textual%20app%20with%20Hatch.md",
+        "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Render%20and%20compose.md"
+    ]
 }

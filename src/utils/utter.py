@@ -1,4 +1,11 @@
 # src/utils/utter.py
+from typing import ClassVar
+from typing import Dict
+from typing import TypeVar
+
+
+# Type variable for self-reference in class methods
+T = TypeVar("T", bound="UTTER")
 
 
 class UTTER:
@@ -10,64 +17,136 @@ class UTTER:
     groupings like backgrounds, themes, borders, etc.
     """
 
+    def __init__(self) -> None:
+        """Initialize a new UTTER instance with default empty bottles structure.
+
+        The bottles attribute is initialized as an empty dictionary with the
+        same structure as BOTTLE_TEMPLATES.
+        """
+        # Initialize bottles as an empty dictionary with the same structure as BOTTLE_TEMPLATES
+        self.bottles: Dict[str, Dict[str, str]] = {bottle_name: {} for bottle_name in self.BOTTLE_TEMPLATES.keys()}
+
     @classmethod
-    def create_from_palette(cls, palette):
+    def create_from_palette(cls, palette: Dict[str, str]) -> "UTTER":
         """
         Factory method to create a new UTTER instance with palette colors.
 
+        Creates and populates a new UTTER instance from a palette dictionary,
+        mapping color references in bottle templates to actual color values.
+
         Args:
-            palette (dict): A dictionary of color values keyed by name
-                           (e.g. {'primary': '#FF5500', 'secondary': '#333333'})
+            palette: A dictionary of color values keyed by name
+                   (e.g. {'primary': '#FF5500', 'secondary': '#333333'})
 
         Returns:
-            UTTER: A new instance with all bottle templates populated with actual colors
-        """
-        instance = cls()
-        instance.bottles = {}
+            A new UTTER instance with all bottle templates populated with actual colors
 
-        # Populate bottle templates with actual colors from palette
-        for bottle_name, bottle_template in cls.BOTTLE_TEMPLATES.items():
-            instance.bottles[bottle_name] = {}
-            for var_name, color_ref in bottle_template.items():
-                # If the value is a special format string (e.g., spacing, sizing)
-                if isinstance(color_ref, str) and not color_ref.startswith("$"):
-                    instance.bottles[bottle_name][var_name] = color_ref
-                # If the value is a color reference
+        Raises:
+            TypeError: If palette is not a dictionary
+            ValueError: If required color keys are missing
+        """
+        # Validate input
+        if not isinstance(palette, dict):
+            raise TypeError("Palette must be a dictionary")
+
+        # Create a new instance
+        instance = cls()
+
+        # Create a sanitized copy of the palette with validated colors
+        sanitized_palette: Dict[str, str] = {}
+
+        # Default color for fallbacks
+        default_color = "#000000"
+
+        # Ensure we have at least a minimal set of required colors
+        # Add fallbacks for any missing colors
+        required_colors = ["primary", "secondary", "tertiary", "accent"]
+        for color_key in required_colors:
+            # If color exists in palette, validate and add it
+            if color_key in palette:
+                color_value = palette[color_key]
+                # Simple validation that it's a string and starts with #
+                if isinstance(color_value, str) and color_value.startswith("#"):
+                    sanitized_palette[color_key] = color_value
                 else:
-                    color_key = color_ref[1:] if color_ref.startswith("$") else color_ref
-                    instance.bottles[bottle_name][var_name] = palette.get(color_key, "#000000")
+                    # Invalid color format, use default
+                    sanitized_palette[color_key] = default_color
+            else:
+                # Missing required color, use default
+                sanitized_palette[color_key] = default_color
+
+        # Add all other colors from the palette
+        for color_key, color_value in palette.items():
+            if color_key not in sanitized_palette:
+                if isinstance(color_value, str):
+                    sanitized_palette[color_key] = color_value
+                else:
+                    # Ensure all values are strings
+                    sanitized_palette[color_key] = str(color_value)
+
+        # Populate bottle templates with actual colors from sanitized palette
+        for bottle_name, bottle_template in cls.BOTTLE_TEMPLATES.items():
+            # Initialize the bottle if not already present
+            if bottle_name not in instance.bottles:
+                instance.bottles[bottle_name] = {}
+
+            # Prepare all variable values outside the loop
+            processed_values = {}
+
+            # Process all variables first, collecting results
+            for var_name, color_ref in bottle_template.items():
+                try:
+                    # Process the color reference
+                    if isinstance(color_ref, str):
+                        # If the value is a special format string (non-color)
+                        if not color_ref.startswith("$"):
+                            processed_values[var_name] = color_ref
+                        # If the value is a color reference (starts with $)
+                        else:
+                            color_key = color_ref[1:]  # Remove the $ prefix
+                            processed_values[var_name] = sanitized_palette.get(color_key, default_color)
+                    else:
+                        # Handle non-string values
+                        processed_values[var_name] = default_color
+                except Exception as e:
+                    # If any error occurs, use default color and continue
+                    processed_values[var_name] = default_color
+                    # Optionally log the error
+                    print(f"Error processing {var_name} in {bottle_name}: {e}")
+
+            # Update the bottle with all processed values at once
+            instance.bottles[bottle_name].update(processed_values)
 
         return instance
 
-    def to_css(self):
+    def to_css(self) -> str:
         """
         Convert UTTER bottles to CSS variables.
 
         Returns:
-            str: CSS variable definitions as a string
+            CSS variable definitions as a string
         """
         css = []
         for bottle_name, bottle in self.bottles.items():
             css.append(f"/* Bottles - {bottle_name} */")
-            for var_name, value in bottle.items():
-                css.append(f"--{var_name}: {value};")
+            css.extend(f"--{var_name}: {value};" for var_name, value in bottle.items())
             css.append("")  # Empty line between bottles
 
         return "\n".join(css)
 
-    def get_bottle(self, name):
+    def get_bottle(self, name: str) -> Dict[str, str]:
         """
         Get a specific bottle by name.
 
         Args:
-            name (str): The name of the bottle to retrieve
+            name: The name of the bottle to retrieve
 
         Returns:
-            dict: The bottle variables or None if not found
+            The bottle variables or empty dictionary if not found
         """
         return self.bottles.get(name, {})
 
-    def merge_bottles(self, *bottle_names):
+    def merge_bottles(self, *bottle_names: str) -> Dict[str, str]:
         """
         Merge multiple bottles into a single dictionary.
 
@@ -75,51 +154,116 @@ class UTTER:
             *bottle_names: Variable number of bottle names to merge
 
         Returns:
-            dict: Merged variables from all specified bottles
+            Merged variables from all specified bottles
         """
-        result = {}
+        result: Dict[str, str] = {}
         for name in bottle_names:
             bottle = self.get_bottle(name)
             result.update(bottle)
         return result
 
-    def create_custom_bottle(self, name, variables):
+    def create_custom_bottle(self, name: str, variables: Dict[str, str]) -> "UTTER":
         """
         Create a new custom bottle.
 
         Args:
-            name (str): Name for the new bottle
-            variables (dict): Variables to include in the bottle
+            name: Name for the new bottle
+            variables: Variables to include in the bottle
 
         Returns:
             self: For method chaining
+
+        Raises:
+            ValueError: If bottle name already exists
         """
+        if self.bottles.get(name):
+            raise ValueError(f"Bottle {name} already exists. Use a different name.")
         self.bottles[name] = variables
         return self
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Dict[str, str]]:
         """
         Convert the entire UTTER structure to a dictionary.
 
         Returns:
-            dict: Dictionary representation of all bottles
+            Dictionary representation of all bottles
         """
         return self.bottles
 
-    def to_json(self):
+    def to_json(self) -> str:
         """
         Convert the entire UTTER structure to JSON.
 
         Returns:
-            str: JSON representation of all bottles
+            JSON representation of all bottles
         """
         import json
 
         return json.dumps(self.bottles, indent=2)
 
+    def update_bottle(self, name: str, variables: Dict[str, str]) -> "UTTER":
+        """
+        Update an existing bottle with new variables.
+
+        Args:
+            name: Name of the bottle to update
+            variables: New variables to update or add
+
+        Returns:
+            self: For method chaining
+
+        Raises:
+            ValueError: If bottle does not exist
+        """
+        if name not in self.bottles:
+            raise ValueError(f"Bottle {name} does not exist")
+
+        self.bottles[name].update(variables)
+        return self
+
+    def remove_bottle(self, name: str) -> "UTTER":
+        """
+        Remove a bottle from the UTTER instance.
+
+        Args:
+            name: Name of the bottle to remove
+
+        Returns:
+            self: For method chaining
+
+        Raises:
+            ValueError: If bottle does not exist
+        """
+        if name not in self.bottles:
+            raise ValueError(f"Bottle {name} does not exist")
+
+        del self.bottles[name]
+        return self
+
+    def add_to_bottle(self, bottle_name: str, var_name: str, value: str) -> "UTTER":
+        """
+        Add a single variable to a bottle.
+
+        Args:
+            bottle_name: Name of the bottle to update
+            var_name: Name of the variable to add
+            value: Value of the variable
+
+        Returns:
+            self: For method chaining
+
+        Raises:
+            ValueError: If bottle does not exist
+        """
+        if bottle_name not in self.bottles:
+            raise ValueError(f"Bottle {bottle_name} does not exist")
+
+        self.bottles[bottle_name][var_name] = value
+        return self
+
     # Bottle templates - define the structure and color references
     # $ prefix indicates a dynamic color value to be filled from palette
-    BOTTLE_TEMPLATES = {
+    BOTTLE_TEMPLATES: ClassVar[Dict[str, Dict[str, str]]] = {
         # Background variables for different UI elements
         "Backgrounds": {
             "background-primary": "$primary",

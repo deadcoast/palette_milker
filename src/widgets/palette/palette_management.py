@@ -8,7 +8,6 @@ adding, renaming, and organizing color palettes.
 import json
 import uuid
 from datetime import datetime
-from pathlib import Path
 
 # Avoid circular import, use forward reference for type hints only
 from typing import TYPE_CHECKING
@@ -17,7 +16,6 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Union
 from typing import cast
 
 from textual import events
@@ -26,19 +24,15 @@ from textual.app import ComposeResult
 from textual.color import Color
 from textual.containers import Container
 from textual.containers import Horizontal
-from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widget import Widget
-from textual.widgets import Button
-from textual.widgets import Input
 from textual.widgets import Static
 
 from constants.paths import Paths
 
 
 if TYPE_CHECKING:
-    from widgets.palette.palette_selector import PaletteSelector
+    pass
 
 # Constants from paths
 DATA_DIR = Paths.DATA_DIR
@@ -60,7 +54,7 @@ class PaletteManager(App):
     """Main application class for managing palettes."""
 
     # List of all palettes
-    palettes: reactive[List[Dict[str, Any]]] = reactive([])
+    palettes: reactive[List[Dict[str, Any]]] = reactive([], always_update=True, repaint=True)
     # ID of the currently active palette
     active_palette_id: reactive[Optional[str]] = reactive(None)
     # Index of the currently selected color slot (0-7)
@@ -75,12 +69,13 @@ class PaletteManager(App):
         self._load_palettes()
 
     def compose(self) -> ComposeResult:
-        from widgets.palette.palette_selector import PaletteSelector
+        from .palette_widget import PaletteSelector
+
         yield PaletteSelector()
 
     def on_mount(self) -> None:
         """Set up the application when mounted."""
-        from widgets.palette.palette_selector import PaletteSelector
+        from .palette_widget import PaletteSelector
 
         # Use cast to help type checker understand this is a PaletteSelector
         selector = cast(Any, self.query_one(PaletteSelector))
@@ -88,7 +83,16 @@ class PaletteManager(App):
         selector.palettes = self.palettes
 
     def add_palette(self, palette: Dict[str, Any]) -> None:
-        self.palettes.append(palette)
+        """Add a palette to the collection.
+
+        Args:
+            palette: The palette to add
+        """
+        # Create a copy of the current palettes list
+        updated_palettes = self.palettes.copy()
+        updated_palettes.append(palette)
+        # Set the entire list to trigger the watcher
+        self.palettes = updated_palettes
 
     def get_palette(self, palette_id: str) -> Dict[str, Any]:
         return next((p for p in self.palettes if p["id"] == palette_id), {})
@@ -110,9 +114,7 @@ class PaletteManager(App):
         return next((p for p in self.palettes if p["id"] == palette_id), {})
 
     def get_palette_by_index(self, index: int) -> Dict[str, Any]:
-        if 0 <= index < len(self.palettes):
-            return self.palettes[index]
-        return {}
+        return self.palettes[index] if 0 <= index < len(self.palettes) else {}
 
     def get_palette_count(self) -> int:
         return len(self.palettes)
@@ -131,10 +133,10 @@ class PaletteManager(App):
         self.post_message(ColorFormatChanged(new_format))
 
     # --- Utility methods ---
-    def get_color_string(self, color: Optional[Color] = None, format: Optional[str] = None) -> str:
+    def get_color_string(self, color: Optional[Color] = None, color_format: Optional[str] = None) -> str:
         """Convert a color to string in the specified format."""
         color_to_use = color if color is not None else self.active_color
-        format_to_use = format if format is not None else self.color_format
+        format_to_use = color_format if color_format is not None else self.color_format
 
         if format_to_use == "hsl":
             return self._use_colorsys(color_to_use)
@@ -150,13 +152,13 @@ class PaletteManager(App):
         import colorsys
 
         r, g, b = color.normalized
-        h, l, s = colorsys.rgb_to_hls(r, g, b)  # HLS! Not HSL
+        h, lightness, s = colorsys.rgb_to_hls(r, g, b)  # HLS! Not HSL
         # Convert HLS to HSL for display consistency if needed, or just display HLS
         # HSL: H stays same, S_hsl = S_hls / (1 - abs(2*L-1)), L_hsl = L
         # Approximate HSL display based on HLS:
         h_deg = round(h * 360)
         s_pct = round(s * 100)
-        l_pct = round(l * 100)
+        l_pct = round(lightness * 100)
         return f"hsl({h_deg}, {s_pct}%, {l_pct}%)"  # Displaying HLS values in HSL format string
 
     def is_color_dark(self, color: Optional[Color] = None) -> bool:
@@ -164,8 +166,7 @@ class PaletteManager(App):
         color_to_check = color if color is not None else self.active_color
         # Calculate luminance manually from RGB
         r, g, b = color_to_check.rgb
-        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return luminance < 0.5
+        return 0.299 * r + 0.587 * g + 0.114 * b < 127.5
 
     def _load_palettes(self) -> None:
         """Load palettes from JSON file."""
@@ -217,6 +218,30 @@ class PaletteManager(App):
         """React when active slot changes."""
         self.post_message(ActiveSlotChanged(new_index))
 
+    def watch_active_color_index(self, old_index: int, new_index: int) -> None:
+        """Watch for changes to the active color index."""
+        # Update the UI when active color index changes
+        if old_index != new_index:
+            # Get all color slots first, before the loop
+            # This avoids using try-except inside the loop
+            color_slots = {}
+
+            # Query all slots at once to avoid repeated queries in the loop
+            for slot in self.query(ColorSlot):
+                if slot.id is not None and slot.id.startswith("color-slot-"):
+                    try:
+                        # Extract the index from the ID
+                        slot_idx = int(slot.id.replace("color-slot-", ""))
+                        color_slots[slot_idx] = slot
+                    except ValueError:
+                        # Skip slots with invalid IDs
+                        pass
+
+            # Now update only the slots that exist
+            for i in range(8):
+                if i in color_slots:
+                    color_slots[i].active = i == new_index
+
     # --- Palette Management Methods ---
     @property
     def active_palette(self) -> Optional[Dict[str, Any]]:
@@ -231,44 +256,77 @@ class PaletteManager(App):
         return self._duplicate_palette(new_palette)
 
     def update_palette(self, palette_id: str, updates: Dict[str, Any]) -> None:
-        """Update an existing palette."""
+        """Update an existing palette.
+
+        Args:
+            palette_id: ID of the palette to update
+            updates: Dictionary of fields to update
+        """
         if not palette_id:
             return
 
-        updated_list = []
+        updated_palettes = []
         found = False
         for p in self.palettes:
             if p["id"] == palette_id:
-                updated_list.append({**p, **updates})
+                # Create a new dictionary with updated values
+                updated_palette = {**p, **updates}
+                updated_palettes.append(updated_palette)
                 found = True
             else:
-                updated_list.append(p)
+                # Keep original unchanged palettes
+                updated_palettes.append(p.copy())
+
         if found:
-            self.palettes = updated_list
+            # Set the entire list to trigger the watcher
+            self.palettes = updated_palettes
 
     def delete_palette(self, palette_id: str) -> None:
-        """Delete a palette."""
+        """Delete a palette.
+
+        Args:
+            palette_id: ID of the palette to delete
+        """
         if len(self.palettes) <= 1:
             self.notify("Cannot delete the last palette.", severity="warning")
             return
 
-        # Filter out the palette
-        updated_palettes = [p for p in self.palettes if p["id"] != palette_id]
-        self.palettes = updated_palettes
+        # Filter out the palette and create a new list
+        updated_palettes = [p.copy() for p in self.palettes if p["id"] != palette_id]
 
         # If the deleted was active, select the first remaining one
         if palette_id == self.active_palette_id:
-            self.active_palette_id = self.palettes[0]["id"] if self.palettes else None
+            # Update the reactive property after setting palettes
+            new_active_id = updated_palettes[0]["id"] if updated_palettes else None
+            self.palettes = updated_palettes
+            self.active_palette_id = new_active_id
+        else:
+            # Just update the palettes list
+            self.palettes = updated_palettes
 
     def set_color_at_slot(self, slot_index: int, color: Color) -> None:
-        """Set a color at a specific slot in the active palette."""
-        if not self.active_palette or not (0 <= slot_index < 8):
+        """Set a color at a specific slot in the active palette.
+
+        Args:
+            slot_index: Index of the slot to update (0-7)
+            color: New color to set
+        """
+        active_palette = self.active_palette
+        if not active_palette or not (0 <= slot_index < 8):
             return
 
-        # Make a copy of colors, update, then update the palette
-        current_colors = list(self.active_palette["colors"])
+        # Make a copy of the active palette
+        palette_copy = {**active_palette}
+
+        # Make a copy of colors, update the specific slot
+        current_colors = list(palette_copy["colors"])
         current_colors[slot_index] = color.hex  # Store as hex string
-        self.update_palette(self.active_palette_id or "", {"colors": current_colors})
+
+        # Update the colors in the palette copy
+        palette_copy["colors"] = current_colors
+
+        # Update the palette using the copy
+        self.update_palette(self.active_palette_id or "", palette_copy)
 
     def duplicate_palette(self, palette_id: str) -> Optional[Dict[str, Any]]:
         """Duplicate an existing palette."""
@@ -285,9 +343,24 @@ class PaletteManager(App):
         return self._duplicate_palette(new_palette)
 
     def _duplicate_palette(self, new_palette: Dict[str, Any]) -> Dict[str, Any]:
-        """Add a new palette to the collection and set it as active."""
-        self.palettes = self.palettes + [new_palette]
+        """Add a new palette to the collection and set it as active.
+
+        Args:
+            new_palette: The new palette to add
+
+        Returns:
+            The newly added palette
+        """
+        # Create a copy of the current palettes list
+        updated_palettes = [p.copy() for p in self.palettes]
+
+        # Add the new palette
+        updated_palettes.append(new_palette)
+
+        # Update both reactive properties
+        self.palettes = updated_palettes
         self.active_palette_id = new_palette["id"]
+
         return new_palette
 
 
@@ -303,13 +376,14 @@ class ActiveColorChanged(Message):
 class ColorFormatChanged(Message):
     """Message sent when the color format changes."""
 
-    def __init__(self, format: str) -> None:
-        self.format = format
+    def __init__(self, color_format: str) -> None:
+        self.color_format = color_format
         super().__init__()
 
 
 class PalettesChanged(Message):
     """Message sent when the palettes list changes."""
+
     pass
 
 
@@ -351,19 +425,19 @@ class ColorSlot(Static):
         self,
         color: str = "",
         active: bool = False,
-        id: Optional[str] = None,
-        classes: Optional[str] = None
+        widget_id: Optional[str] = None,
+        classes: Optional[str] = None,
     ):
         """
-        Initialize a color slot.
+        Initialize a ColorSlot.
 
         Args:
-            color: The color hex value
-            active: If this is the active color slot
-            id: Optional widget ID
-            classes: Optional CSS classes
+            color: The color to display (hex format)
+            active: Whether the slot is active
+            widget_id: Widget ID
+            classes: CSS classes
         """
-        super().__init__("", id=id, classes=classes)
+        super().__init__(id=widget_id, classes=classes)
         self.color = color
         self.active = active
 
@@ -388,7 +462,43 @@ class ColorSlot(Static):
             self.remove_class("active")
 
 
-# Renamed to avoid conflict with imported module
+class PaletteControls(Horizontal):
+    """Controls for managing palettes."""
+
+    DEFAULT_CSS = """
+    PaletteControls {
+        width: 100%;
+        height: 3;
+    }
+    """
+
+    def __init__(
+        self,
+        palette_name: str = "Default",
+        on_add: Optional[Callable[[], None]] = None,
+        on_rename: Optional[Callable[[], None]] = None,
+        on_delete: Optional[Callable[[], None]] = None,
+        widget_id: Optional[str] = None,
+        classes: Optional[str] = None,
+    ):
+        """
+        Initialize PaletteControls.
+
+        Args:
+            palette_name: Name of the currently active palette
+            on_add: Callback for add button
+            on_rename: Callback for rename button
+            on_delete: Callback for delete button
+            widget_id: Widget ID
+            classes: CSS classes
+        """
+        super().__init__(id=widget_id, classes=classes)
+        self.palette_name = palette_name
+        self.on_add = on_add
+        self.on_rename = on_rename
+        self.on_delete = on_delete
+
+
 class PaletteSelectorWidget(Container):
     """A palette selector widget that displays available palettes."""
 
@@ -409,40 +519,35 @@ class PaletteSelectorWidget(Container):
         self,
         palettes: Optional[List[str]] = None,
         on_select: Optional[Callable[[str], None]] = None,
-        id: Optional[str] = None,
-        classes: Optional[str] = None
+        widget_id: Optional[str] = None,
+        classes: Optional[str] = None,
     ):
         """
-        Initialize a palette selector.
+        Initialize PaletteSelectorWidget.
 
         Args:
             palettes: List of palette names
             on_select: Callback when a palette is selected
-            id: Optional widget ID
-            classes: Optional CSS classes
+            widget_id: Widget ID
+            classes: CSS classes
         """
-        super().__init__(id=id, classes=classes)
-        self.palettes = palettes or ["Default"]
-        self.on_select_callback = on_select
-        self.current_palette = self.palettes[0] if self.palettes else ""
+        super().__init__(id=widget_id, classes=classes)
+        self.palettes = palettes or []
+        self.on_select = on_select
 
     def compose(self) -> ComposeResult:
         """Compose the palette selector with active and inactive palettes."""
         # Active palette
         palette_name = self.current_palette
         yield Static(
-            f"╠════════════════╗\n├─♢ {palette_name.ljust(14)}╠",
-            id="active-palette",
-            classes="active-palette"
+            f"╠════════════════╗\n├─♢ {palette_name.ljust(14)}╠", id="active-palette", classes="active-palette"
         )
 
         # Inactive palettes
         for palette in self.palettes:
             if palette != self.current_palette:
                 yield Static(
-                    f"┬───────────────┐\n├─ {palette.ljust(14)}│",
-                    id=f"palette-{palette}",
-                    classes="inactive-palette"
+                    f"┬───────────────┐\n├─ {palette.ljust(14)}│", id=f"palette-{palette}", classes="inactive-palette"
                 )
 
     def on_click(self, event: events.Click) -> None:
@@ -453,152 +558,8 @@ class PaletteSelectorWidget(Container):
             if widget_id and widget_id.startswith("palette-"):
                 palette_name = widget_id[8:]  # Remove "palette-" prefix
                 self.current_palette = palette_name
-                if self.on_select_callback:
-                    self.on_select_callback(palette_name)
-
-
-class PaletteControls(Horizontal):
-    """Controls for managing palettes."""
-
-    DEFAULT_CSS = """
-    PaletteControls {
-        width: 100%;
-        height: 1;
-    }
-
-    PaletteControls .name {
-        width: 35%;
-    }
-
-    PaletteControls .controls {
-        width: 65%;
-        content-align: right middle;
-    }
-    """
-
-    def __init__(
-        self,
-        palette_name: str = "Default",
-        on_add: Optional[Callable[[], None]] = None,
-        on_rename: Optional[Callable[[], None]] = None,
-        on_delete: Optional[Callable[[], None]] = None,
-        id: Optional[str] = None,
-        classes: Optional[str] = None
-    ):
-        """
-        Initialize palette controls.
-
-        Args:
-            palette_name: Current palette name
-            on_add: Callback for add action
-            on_rename: Callback for rename action
-            on_delete: Callback for delete action
-            id: Optional widget ID
-            classes: Optional CSS classes
-        """
-        super().__init__(id=id, classes=classes)
-        self.palette_name = palette_name
-        self.on_add = on_add
-        self.on_rename = on_rename
-        self.on_delete = on_delete
-
-    def compose(self) -> ComposeResult:
-        """Compose the palette controls UI."""
-        yield Static(f"Palette: {self.palette_name}", classes="name")
-
-        with Container(classes="controls"):
-            yield Button("Add New", id="add-palette")
-            yield Button("Rename", id="rename-palette")
-            yield Button("Delete", id="delete-palette")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle button press events."""
-        button_id = event.button.id
-        if button_id == "add-palette" and self.on_add:
-            self.on_add()
-        elif button_id == "rename-palette" and self.on_rename:
-            self.on_rename()
-        elif button_id == "delete-palette" and self.on_delete:
-            self.on_delete()
-
-
-class PaletteNameDialog(Container):
-    """Dialog for naming or renaming a palette."""
-
-    DEFAULT_CSS = """
-    PaletteNameDialog {
-        width: 35;
-        height: 7;
-        border: solid $primary;
-        background: $surface;
-        align: center middle;
-    }
-
-    PaletteNameDialog .title {
-        width: 100%;
-        height: 1;
-        text-align: center;
-    }
-
-    PaletteNameDialog .input-container {
-        width: 100%;
-        height: 3;
-        padding: 0 1;
-    }
-
-    PaletteNameDialog .buttons {
-        width: 100%;
-        height: 1;
-        content-align: center middle;
-    }
-    """
-
-    def __init__(
-        self,
-        initial_name: str = "",
-        on_confirm: Optional[Callable[[str], None]] = None,
-        on_cancel: Optional[Callable[[], None]] = None,
-        id: Optional[str] = None,
-        classes: Optional[str] = None
-    ):
-        """
-        Initialize a palette name dialog.
-
-        Args:
-            initial_name: Initial palette name
-            on_confirm: Callback for OK action with new name
-            on_cancel: Callback for cancel action
-            id: Optional widget ID
-            classes: Optional CSS classes
-        """
-        super().__init__(id=id, classes=classes)
-        self.initial_name = initial_name
-        self.on_confirm = on_confirm
-        self.on_cancel = on_cancel
-
-    def compose(self) -> ComposeResult:
-        """Compose the dialog UI."""
-        yield Static("Palette Name:", classes="title")
-
-        with Container(classes="input-container"):
-            yield Input(
-                value=self.initial_name,
-                placeholder="Enter palette name",
-                id="palette-name-input"
-            )
-
-        with Container(classes="buttons"):
-            yield Button("OK", id="ok-button", variant="primary")
-            yield Button("Cancel", id="cancel-button")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle button press events."""
-        button_id = event.button.id
-        if button_id == "ok-button" and self.on_confirm:
-            name_input = self.query_one("#palette-name-input", Input)
-            self.on_confirm(name_input.value)
-        elif button_id == "cancel-button" and self.on_cancel:
-            self.on_cancel()
+                if self.on_select:
+                    self.on_select(palette_name)
 
 
 class PaletteManagement(Container):
@@ -627,25 +588,49 @@ class PaletteManagement(Container):
     }
     """
 
-    current_palette = reactive("Default")
-    active_color_index = reactive(0)
+    # Reactive properties defined at class level, following Textual best practices
+    palette_id: reactive[str] = reactive("")
+    palette_name: reactive[str] = reactive("Default")
+    palette_colors: reactive[List[str]] = reactive(["#000000"] * 8)
+    active_color_index: reactive[int] = reactive(0)
 
     def __init__(
         self,
+        *,  # Force keyword arguments for clarity
+        palette_id: Optional[str] = None,
+        palette_name: Optional[str] = None,
+        colors: Optional[List[str]] = None,
+        active_color_index: Optional[int] = None,
         palettes: Optional[Dict[str, List[str]]] = None,
-        id: Optional[str] = None,
-        classes: Optional[str] = None
+        widget_id: Optional[str] = None,
+        classes: Optional[str] = None,
     ):
         """
         Initialize the palette management widget.
 
         Args:
+            palette_id: ID of the active palette
+            palette_name: Name of the active palette
+            colors: List of colors in the active palette
+            active_color_index: Index of the active color
             palettes: Dictionary of palette names to color lists
-            id: Optional widget ID
-            classes: Optional CSS classes
+            widget_id: Widget ID
+            classes: CSS classes
         """
-        super().__init__(id=id, classes=classes)
-        self.palettes = palettes or {"Default": ["#000000"] * 8}
+        super().__init__(id=widget_id, classes=classes)
+
+        # Set reactive properties if provided
+        if palette_id is not None:
+            self.palette_id = palette_id
+        if palette_name is not None:
+            self.palette_name = palette_name
+        if colors is not None:
+            self.palette_colors = colors.copy() if colors else ["#000000"] * 8
+        if active_color_index is not None:
+            self.active_color_index = active_color_index
+
+        # Initialize other properties
+        self.palettes = palettes or {self.palette_name: self.palette_colors.copy()}
 
     def compose(self) -> ComposeResult:
         """Compose the palette management UI."""
@@ -657,32 +642,32 @@ class PaletteManagement(Container):
 
         # Color buttons row
         with Horizontal(classes="color-buttons"):
-            colors = self.palettes.get(self.current_palette, [""] * 8)
             for i in range(8):
-                is_active = (i == self.active_color_index)
-                color = colors[i] if i < len(colors) else ""
-                yield ColorSlot(
-                    color=color,
-                    active=is_active,
-                    id=f"color-slot-{i}"
-                )
+                is_active = i == self.active_color_index
+                color = self.palette_colors[i] if i < len(self.palette_colors) else ""
+                yield ColorSlot(color=color, active=is_active, widget_id=f"color-slot-{i}")
 
         # Palette controls
         yield PaletteControls(
-            palette_name=self.current_palette,
+            palette_name=self.palette_name,
             on_add=self.add_palette,
             on_rename=self.rename_palette,
             on_delete=self.delete_palette,
-            id="palette-controls"
+            widget_id="palette-controls",
         )
 
         # Palette selector
         yield PaletteSelectorWidget(
             palettes=list(self.palettes.keys()),
             on_select=self.select_palette,
-            id="palette-selector",
-            classes="palette-selector"
+            widget_id="palette-selector",
+            classes="palette-selector",
         )
+
+    def on_mount(self) -> None:
+        """Handle widget mount event."""
+        # Initialize any additional state here
+        pass
 
     def on_click(self, event: events.Click) -> None:
         """Handle click events on color slots."""
@@ -692,38 +677,166 @@ class PaletteManagement(Container):
             if widget_id and widget_id.startswith("color-slot-"):
                 index = int(widget_id.split("-")[-1])
                 self.active_color_index = index
+                # Post a message to notify about color selection change
+                from ...messages.palette_messages import ColorSelectionChanged
+
+                self.post_message(ColorSelectionChanged(self, index, self.palette_colors[index]))
+
+    # Watchers for reactive properties
+    def watch_palette_name(self, old_name: str, new_name: str) -> None:
+        """Watch for changes to the palette name."""
+        # Update the UI when palette name changes
+        if old_name != new_name:
+            # Update the palette controls
+            palette_controls = self.query_one("#palette-controls", PaletteControls)
+            palette_controls.palette_name = new_name
+
+            # Ensure the palette exists in palettes dictionary
+            if new_name not in self.palettes:
+                self.palettes[new_name] = self.palette_colors.copy()
+
+            # Post a message about the palette change
+            from ...messages.palette_messages import PaletteUpdated
+
+            self.post_message(PaletteUpdated(self, self.palette_id))
+
+    def watch_palette_colors(self, old_colors: List[str], new_colors: List[str]) -> None:
+        """Watch for changes to the palette colors."""
+        # Update the UI when colors change
+        if old_colors != new_colors:
+            # Update the color slots
+            for i, color in enumerate(new_colors):
+                if i < 8:  # Limit to 8 colors
+                    slot = self.query_one(f"#color-slot-{i}", ColorSlot)
+                    slot.color = color
+
+            # Update the palette in the palettes dictionary
+            if self.palette_name in self.palettes:
+                self.palettes[self.palette_name] = new_colors.copy()
+
+            # Post a message about the palette change
+            from ...messages.palette_messages import PaletteUpdated
+
+            self.post_message(PaletteUpdated(self, self.palette_id))
+
+    def watch_active_color_index(self, old_index: int, new_index: int) -> None:
+        """Watch for changes to the active color index."""
+        # Update the UI when active color index changes
+        if old_index != new_index:
+            # Get all color slots first, before the loop
+            # This avoids using try-except inside the loop
+            color_slots = {}
+
+            # Query all slots at once to avoid repeated queries in the loop
+            for slot in self.query(ColorSlot):
+                if slot.id is not None and slot.id.startswith("color-slot-"):
+                    try:
+                        # Extract the index from the ID
+                        slot_idx = int(slot.id.replace("color-slot-", ""))
+                        color_slots[slot_idx] = slot
+                    except ValueError:
+                        # Skip slots with invalid IDs
+                        pass
+
+            # Now update only the slots that exist
+            for i in range(8):
+                if i in color_slots:
+                    color_slots[i].active = i == new_index
+
+    def update_palette(
+        self,
+        palette_id: Optional[str] = None,
+        palette_name: Optional[str] = None,
+        colors: Optional[List[str]] = None,
+        active_color_index: Optional[int] = None,
+    ) -> None:
+        """
+        Update the palette management widget with new data.
+
+        Args:
+            palette_id: ID of the active palette
+            palette_name: Name of the active palette
+            colors: List of colors in the active palette
+            active_color_index: Index of the active color
+        """
+        if palette_id is not None:
+            self.palette_id = palette_id
+
+        if palette_name is not None:
+            self.palette_name = palette_name
+
+        if colors is not None:
+            self.palette_colors = colors.copy() if colors else ["#000000"] * 8
+
+        if active_color_index is not None:
+            self.active_color_index = active_color_index
 
     def add_palette(self) -> None:
         """Add a new palette."""
-        # In a real implementation, we would show the name dialog and create a new palette
-        pass
+        # Create a new palette name
+        new_name = f"New Palette {len(self.palettes)}"
+
+        # Create a new palette with default colors
+        self.palettes[new_name] = ["#FFFFFF"] * 8
+
+        # Set as current
+        self.palette_name = new_name
+        self.palette_colors = self.palettes[new_name].copy()
+        self.active_color_index = 0
+
+        # Post a message about the new palette
+        from ...messages.palette_messages import PaletteCreated
+
+        self.post_message(PaletteCreated(self, self.palette_id, new_name))
 
     def rename_palette(self) -> None:
         """Rename the current palette."""
-        # In a real implementation, we would show the name dialog
-        pass
+        # In a real implementation, we would show a dialog
+        # For now, just append " (Renamed)" to the current name
+        new_name = f"{self.palette_name} (Renamed)"
+
+        # Update the palettes dictionary
+        if self.palette_name in self.palettes:
+            colors = self.palettes.pop(self.palette_name)
+            self.palettes[new_name] = colors
+
+            # Update the reactive property
+            self.palette_name = new_name
+
+            # Post a message about the renamed palette
+            from ...messages.palette_messages import PaletteUpdated
+
+            self.post_message(PaletteUpdated(self, self.palette_id))
 
     def delete_palette(self) -> None:
         """Delete the current palette."""
-        # In a real implementation, we would show a confirmation dialog
-        pass
+        # Ensure we don't delete the last palette
+        if len(self.palettes) <= 1:
+            return
+
+        # Remove the current palette
+        if self.palette_name in self.palettes:
+            self.palettes.pop(self.palette_name)
+
+            # Set a new active palette
+            new_name = next(iter(self.palettes.keys()))
+            self.palette_name = new_name
+            self.palette_colors = self.palettes[new_name].copy()
+            self.active_color_index = 0
+
+            # Post a message about the deleted palette
+            from ...messages.palette_messages import PaletteDeleted
+
+            self.post_message(PaletteDeleted(self, self.palette_id))
 
     def select_palette(self, palette_name: str) -> None:
         """Select a palette."""
         if palette_name in self.palettes:
-            self.current_palette = palette_name
+            self.palette_name = palette_name
+            self.palette_colors = self.palettes[palette_name].copy()
+            self.active_color_index = 0
 
-    def watch_current_palette(self, old_palette: str, new_palette: str) -> None:
-        """React to palette changes."""
-        # Update the UI when the current palette changes
-        self.refresh()
+            # Post a message about the selected palette
+            from ...messages.palette_messages import PaletteSelectionChanged
 
-    def watch_active_color_index(self, old_index: int, new_index: int) -> None:
-        """React to active color index changes."""
-        # Update all color slots to reflect the active one
-        for i in range(8):
-            try:
-                slot = self.query_one(f"#color-slot-{i}", ColorSlot)
-                slot.active = (i == new_index)
-            except Exception:
-                pass
+            self.post_message(PaletteSelectionChanged(self, self.palette_id))

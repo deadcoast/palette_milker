@@ -2,10 +2,12 @@
 Palette model for the Milky Color Suite.
 
 This module defines the Palette and PaletteCollection classes for managing
-color palettes throughout the application.
+color palettes throughout the application, with proper reactive properties
+for UI integration.
 """
 
 import json
+import logging
 import os
 import uuid
 from typing import Any
@@ -14,7 +16,74 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from textual.message import Message
+from textual.reactive import reactive
+
 from .color_model import Color
+
+
+# Configure logging
+logger = logging.getLogger("palette_model")
+
+
+class PaletteUpdated(Message):
+    """Message sent when a palette is updated."""
+
+    def __init__(self, palette_id: str) -> None:
+        """
+        Initialize the message with the palette ID.
+
+        Args:
+            palette_id: ID of the updated palette
+        """
+        super().__init__()
+        self.palette_id = palette_id
+
+
+class PaletteAdded(Message):
+    """Message sent when a palette is added."""
+
+    def __init__(self, palette_id: str) -> None:
+        """
+        Initialize the message with the palette ID.
+
+        Args:
+            palette_id: ID of the added palette
+        """
+        super().__init__()
+        self.palette_id = palette_id
+
+
+class PaletteRemoved(Message):
+    """Message sent when a palette is removed."""
+
+    def __init__(self, palette_id: str) -> None:
+        """
+        Initialize the message with the palette ID.
+
+        Args:
+            palette_id: ID of the removed palette
+        """
+        super().__init__()
+        self.palette_id = palette_id
+
+
+class PaletteColorUpdated(Message):
+    """Message sent when a color in a palette is updated."""
+
+    def __init__(self, palette_id: str, color_index: int, color: str) -> None:
+        """
+        Initialize the message with palette ID, color index, and the new color.
+
+        Args:
+            palette_id: ID of the palette
+            color_index: Index of the updated color
+            color: New color value as hex string
+        """
+        super().__init__()
+        self.palette_id = palette_id
+        self.color_index = color_index
+        self.color = color
 
 
 class Palette:
@@ -46,6 +115,10 @@ class Palette:
                     self._colors.append(color)
                 else:
                     self._colors.append(Color(color))
+
+        # Ensure palette has at least 8 colors
+        while len(self._colors) < 8:
+            self._colors.append(Color("#FFFFFF"))
 
     @property
     def colors(self) -> List[Color]:
@@ -162,6 +235,193 @@ class Palette:
     def __iter__(self):
         """Iterate over the colors in the palette."""
         return iter(self._colors)
+
+
+class PaletteModel:
+    """
+    Model class for reactive palette data management.
+
+    This class manages the active palette and selection state with
+    reactive properties for UI integration.
+    """
+
+    # Reactive properties with proper type annotations
+    # These are defined at the class level as per Textual best practices
+    active_palette_id: reactive[Optional[str]] = reactive(None)
+    active_color_index: reactive[int] = reactive(0)
+
+    def __init__(self, palette_collection: "PaletteCollection"):
+        """
+        Initialize the PaletteModel.
+
+        Args:
+            palette_collection: The palette collection to manage
+        """
+        self._collection = palette_collection
+
+        # Set initial active palette if available
+        if len(self._collection) > 0:
+            palette_id = self._collection.palettes[0].palette_id
+            self.set_active_palette(palette_id)
+
+        # Set initial active color index to 0
+        self.set_active_color_index(0)
+
+    @property
+    def active_palette(self) -> Optional[Palette]:
+        """
+        Get the active palette.
+
+        Returns:
+            The active palette or None if not set
+        """
+        if not self.active_palette_id:
+            return None
+        return self._collection.get_palette(self.active_palette_id)
+
+    @property
+    def active_color(self) -> Optional[Color]:
+        """
+        Get the active color.
+
+        Returns:
+            The active color or None if not available
+        """
+        palette = self.active_palette
+        return palette.get_color(self.active_color_index) if palette else None
+
+    def set_active_palette(self, palette_id: str) -> None:
+        """
+        Set the active palette.
+
+        Args:
+            palette_id: ID of the palette to set as active
+        """
+        if self._collection.get_palette(palette_id):
+            self.active_palette_id = palette_id
+
+    def set_active_color_index(self, index: int) -> None:
+        """
+        Set the active color index.
+
+        Args:
+            index: Index of the color to set as active
+        """
+        if self.active_palette and 0 <= index < len(self.active_palette):
+            self.active_color_index = index
+
+    def update_active_color(self, color: Union[str, Color]) -> None:
+        """
+        Update the active color.
+
+        Args:
+            color: New color value
+        """
+        if self.active_palette and 0 <= self.active_color_index < len(self.active_palette):
+            palette = self.active_palette
+            palette.update_color(self.active_color_index, color)
+
+            # Post message about color update
+            self.post_message(
+                PaletteColorUpdated(
+                    palette_id=palette.palette_id, color_index=self.active_color_index, color=str(color)
+                )
+            )
+
+    def add_palette(self, name: str, colors: Optional[List[Union[str, Color]]] = None) -> Palette:
+        """
+        Add a new palette.
+
+        Args:
+            name: Name of the palette
+            colors: List of colors
+
+        Returns:
+            The created palette
+        """
+        # Convert all string colors to ensure type compatibility
+        processed_colors: List[Union[str, Color]] = []
+
+        if colors:
+            for color in colors:
+                if isinstance(color, (str, Color)):
+                    # Keep strings as they are
+                    processed_colors.append(color)
+                else:
+                    # Try to convert unknown types to string
+                    processed_colors.append(str(color))
+
+        # Create the palette with the processed colors
+        palette = Palette(name=name, colors=processed_colors)
+        self._collection.add_palette(palette)
+
+        # Post message about palette addition
+        self.post_message(PaletteAdded(palette_id=palette.palette_id))
+
+        # Set as active if this is the first palette
+        if len(self._collection) == 1:
+            self.set_active_palette(palette.palette_id)
+
+        return palette
+
+    def remove_active_palette(self) -> None:
+        """Remove the active palette."""
+        if self.active_palette_id:
+            palette_id = self.active_palette_id
+
+            # Remove the palette
+            self._collection.remove_palette(palette_id)
+
+            # Post message about palette removal
+            self.post_message(PaletteRemoved(palette_id=palette_id))
+
+            # Set a new active palette if available
+            if len(self._collection) > 0:
+                self.set_active_palette(self._collection.palettes[0].palette_id)
+            else:
+                # Using direct attribute access for reactive properties
+                object.__setattr__(self, "active_palette_id", None)
+
+    def rename_active_palette(self, name: str) -> None:
+        """
+        Rename the active palette.
+
+        Args:
+            name: New name for the palette
+        """
+        if self.active_palette:
+            palette = self.active_palette
+            palette.name = name
+
+            # Post message about palette update
+            self.post_message(PaletteUpdated(palette_id=palette.palette_id))
+
+    def post_message(self, message: Message) -> None:
+        """
+        Post a message.
+
+        This is a placeholder method that will be replaced when the model
+        is bound to an App instance.
+
+        Args:
+            message: Message to post
+        """
+        # This will be replaced when bound to an App
+        logger.info(f"Message not delivered: {message}")
+
+    def bind_to_app(self, app: Any) -> None:
+        """
+        Bind this model to an App instance.
+
+        Args:
+            app: The App instance to bind to
+        """
+
+        # Replace the post_message method with one that uses the app
+        def post_app_message(message: Message) -> None:
+            app.post_message(message)
+
+        self.post_message = post_app_message
 
 
 class PaletteCollection:
@@ -292,10 +552,18 @@ class PaletteCollection:
             True if the file was saved successfully, False otherwise
         """
         try:
+            # Create directory if it doesn't exist
+            directory = os.path.dirname(file_path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory)
+
             with open(file_path, "w") as f:
                 json.dump(self.to_dict(), f, indent=2)
+
+            logger.info(f"Saved palette collection to {file_path}")
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to save palette collection: {e}")
             return False
 
     @classmethod
@@ -311,13 +579,16 @@ class PaletteCollection:
         """
         try:
             if not os.path.exists(file_path):
+                logger.warning(f"Palette file not found: {file_path}")
                 return None
 
             with open(file_path, "r") as f:
                 data = json.load(f)
 
+            logger.info(f"Loaded palette collection from {file_path}")
             return cls.from_dict(data)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to load palette collection: {e}")
             return None
 
     def __len__(self) -> int:

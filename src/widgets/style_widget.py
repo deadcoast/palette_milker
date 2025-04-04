@@ -1,7 +1,19 @@
-from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical, Grid
-from textual.widgets import Button, DataTable, Static
+from typing import ClassVar
+from typing import List
+from typing import Tuple
+from typing import Union
+
+from textual.app import App
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Grid
+from textual.containers import Horizontal
+from textual.containers import Vertical
 from textual.reactive import reactive
+from textual.widgets import Button
+from textual.widgets import DataTable
+from textual.widgets import Static
+
 
 """
 App Class Variables
@@ -29,7 +41,7 @@ class StyledApp(App):
     """
 
     CSS_PATH = "example.tcss"
-    BINDINGS = [Binding("q", "quit", "Quit")]
+    BINDINGS: ClassVar[List[Union[Binding, Tuple[str, str], Tuple[str, str, str]]]] = [Binding("q", "quit", "Quit")]
     TITLE = "Styled App"
     SUB_TITLE = "Using variables in CSS"
     DEFAULT_CSS = """
@@ -55,7 +67,9 @@ class ReactiveApp(App):
         self.count += 1
 
     def watch_count(self, value: int) -> None:
-        self.query_one("#counter").update(f"Count: {value}")
+        # Get the Static widget and update its renderable
+        counter_widget = self.query_one("#counter", Static)
+        counter_widget.update(f"Count: {value}")
 
 
 class LayoutApp(App):
@@ -64,7 +78,7 @@ class LayoutApp(App):
             with Horizontal():
                 yield Button("Top Left")
                 yield Button("Top Right")
-                yield Button("Bottom")
+            yield Button("Bottom")
 
 
 class GridApp(App):

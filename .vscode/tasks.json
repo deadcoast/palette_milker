@@ -14,6 +14,42 @@
             "command": "${command:python.interpreterPath} ${workspaceFolder}/main.py",
             "args": [],
             "group": "build"
+        },
+        {
+            "label": "Ruff: Lint All Files",
+            "type": "shell",
+            "command": "ruff check .",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Run Ruff linter on the entire project."
+        },
+        {
+            "label": "Ruff: Fix All Autofixable Issues",
+            "type": "shell",
+            "command": "ruff check . --fix",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Auto-fix fixable issues."
+        },
+        {
+            "label": "Ruff: Format Code",
+            "type": "shell",
+            "command": "ruff format .",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Format code using Ruff."
+        },
+        {
+            "label": "Ruff: Format + Lint + Fix",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "ruff format . && ruff check . --fix"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Format and fix code."
         }
     ]
 }

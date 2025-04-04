@@ -1,6 +1,9 @@
 # milky_color_suite/widgets/color/color_selector.py
 from typing import Any
+from typing import ClassVar
+from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 from typing import cast
 
@@ -8,12 +11,14 @@ from rich.console import RenderableType
 from rich.text import Text
 from textual.app import App
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.color import Color
 from textual.color import ColorParseError
-from textual.containers import Container
-from textual.containers import Vertical
+from textual.events import Click
+from textual.events import MouseMove
 from textual.message import Message
 from textual.reactive import reactive
+from textual.widget import Widget
 from textual.widgets import Button
 from textual.widgets import Input
 from textual.widgets import Static
@@ -67,23 +72,26 @@ class ColorSelector(Static):
         """Update the preview box color."""
         preview = self.query_one("#color-preview", Static)
         try:
-            color = Color.parse(value)
-            preview.styles.background = color
-            # Set foreground for contrast - calculate luminance from RGB values
-            # Extract RGB values directly from the color
-            # Convert hex string to RGB components
-            hex_color = color.hex
-            # Remove the # and parse the hex values
-            r = int(hex_color[1:3], 16)
-            g = int(hex_color[3:5], 16)
-            b = int(hex_color[5:7], 16)
-            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-            preview.styles.color = "black" if luminance > 0.5 else "white"
-            preview.renderable = Text(f"Preview: {value}")
+            self._extracted_from__update_preview_5(value, preview)
         except ColorParseError:
             preview.styles.background = "darkred"
             preview.styles.color = "white"
             preview.renderable = Text("Invalid Color")
+
+    # TODO Rename this here and in `_update_preview`
+    def _extracted_from__update_preview_5(self, value, preview):
+        color = Color.parse(value)
+        preview.styles.background = color
+        # Set foreground for contrast - calculate luminance from RGB values
+        # Extract RGB values directly from the color
+        # Convert hex string to RGB components
+        hex_color = color.hex
+        # Remove the # and parse the hex values
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * int(hex_color[5:7], 16)) / 255
+        preview.styles.color = "black" if luminance > 0.5 else "white"
+        preview.renderable = Text(f"Preview: {value}")
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle changes in the color input field."""
@@ -150,8 +158,8 @@ class ColorSwatch(Static):
 
     color = reactive("#000000")
 
-    def __init__(self, color: str = "#000000", id: Optional[str] = None, classes: Optional[str] = None):
-        super().__init__(id=id, classes=classes)
+    def __init__(self, color: str = "#000000", widget_id: Optional[str] = None, classes: Optional[str] = None):
+        super().__init__(id=widget_id, classes=classes)
         self.color = color
 
     def render(self) -> RenderableType:
@@ -172,8 +180,8 @@ class ActiveColorChanged(Message):
 class ColorFormatChanged(Message):
     """Message sent when the color format changes."""
 
-    def __init__(self, format: str) -> None:
-        self.format = format
+    def __init__(self, color_format: str) -> None:
+        self.color_format = color_format
         super().__init__()
 
 
@@ -209,7 +217,7 @@ class ColorInfo(Static):
     _color_format: reactive[str] = reactive("hex")
 
     def compose(self) -> ComposeResult:
-        yield ColorSwatch(id="color-swatch")
+        yield ColorSwatch(widget_id="color-swatch")
         yield Static(id="color-value")
         yield Button("Hex", id="btn-hex")
         yield Button("RGB", id="btn-rgb")
@@ -251,3 +259,138 @@ class ColorInfo(Static):
             self.post_message(ColorFormatChanged(format_value))
             # Update display
             self._update_display()
+
+
+class ColorPicker(Widget):
+    """
+    A widget for handling color selection and other interactions.
+    """
+
+    class ColorSelected(Message):
+        """Message sent when a color is selected by the user."""
+
+        def __init__(self, sender: Widget, color_hex: str):
+            super().__init__(sender)
+            self.color_hex = color_hex
+
+    # For widget-specific functionality not covered by global bindings
+    class PaletteActionRequested(Message):
+        """Message sent for palette-specific actions that need parent handling."""
+
+        def __init__(self, sender: Widget, action: str, data: Optional[dict] = None):
+            super().__init__(sender)
+            self.action = action
+            self.data = data or {}
+
+    def __init__(self, name: Optional[str] = None, id: Optional[str] = None, classes: Optional[str] = None):
+        """Initialize the color picker widget."""
+        super().__init__(name=name, id=id, classes=classes)
+
+    def on_click(self, event: Click) -> None:
+        """Handle click events for color selection.
+
+        Args:
+            event: The click event
+        """
+        # Example: detect clicked color based on coordinates
+        # In a real implementation, you'd determine the actual color
+        color_at_position = "#FF5500"  # Example color
+        self.post_message(self.ColorSelected(self, color_at_position))
+
+    def on_mouse_move(self, event: MouseMove) -> None:
+        """Handle mouse movement for color preview.
+
+        Args:
+            event: The mouse move event
+        """
+        # Example: update color preview as mouse moves
+        # This is a widget-specific behavior, not a global binding
+        pass
+
+    # Other mouse event handlers...
+
+
+class PaletteApp(App):
+    """Example palette app using the proper Textual patterns."""
+
+    # Global keyboard bindings
+    BINDINGS: ClassVar[List[Union[Binding, Tuple[str, str], Tuple[str, str, str]]]] = [
+        # Standard app actions
+        Binding("q", "quit", "Quit"),
+        Binding("ctrl+s", "save_palette", "Save palette"),
+        Binding("ctrl+o", "load_palette", "Load palette"),
+        # Palette editing actions
+        Binding("n", "add_color", "Add color"),
+        Binding("d", "delete_color", "Delete color"),
+        Binding("r", "rename_palette", "Rename palette"),
+        # View controls
+        Binding("h", "toggle_help", "Toggle help"),
+        Binding("tab", "next_section", "Next section"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app."""
+        yield Static("Palette App", id="title")
+        yield ColorPicker(id="color_picker")
+        # Add other widgets like palette display, color grid, etc.
+
+    # Action handlers for key bindings
+    def action_save_palette(self) -> None:
+        """Save the current palette to a file."""
+        self.notify("Saving palette...")
+        # Implementation for saving the palette
+
+    def action_load_palette(self) -> None:
+        """Load a palette from a file."""
+        self.notify("Loading palette...")
+        # Implementation for loading a palette
+
+    def action_add_color(self) -> None:
+        """Add a new color to the palette."""
+        self.notify("Adding color...")
+        # Implementation for adding a color
+
+    def action_delete_color(self) -> None:
+        """Delete the selected color from the palette."""
+        self.notify("Deleting color...")
+        # Implementation for deleting a color
+
+    def action_rename_palette(self) -> None:
+        """Rename the current palette."""
+        self.notify("Renaming palette...")
+        # Implementation for renaming the palette
+
+    def action_toggle_help(self) -> None:
+        """Toggle the help overlay."""
+        self.notify("Toggling help...")
+        # Implementation for toggling help
+
+    def action_next_section(self) -> None:
+        """Move focus to the next section of the interface."""
+        self.notify("Moving to next section...")
+        # Implementation for moving to the next section
+
+    # Message handlers for widget-specific actions
+    def on_color_picker_color_selected(self, message: ColorPicker.ColorSelected) -> None:
+        """Handle when a color is selected in the color picker.
+
+        Args:
+            message: The ColorSelected message containing the color hex
+        """
+        self.notify(f"Color selected: {message.color_hex}")
+        # Implementation for handling a color selection
+
+    def on_color_picker_palette_action_requested(self, message: ColorPicker.PaletteActionRequested) -> None:
+        """Handle palette actions requested by the color picker.
+
+        Args:
+            message: The PaletteActionRequested message
+        """
+        self.notify(f"Palette action: {message.action}")
+        # Handle various palette actions based on message.action and message.data
+
+
+# Example usage:
+if __name__ == "__main__":
+    app = PaletteApp()
+    app.run()

@@ -10,10 +10,10 @@ from enum import Enum
 from enum import auto
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
+# This requires the 'colour' package: pip install colour
 from colour import Color as ColourColor
 
 
@@ -38,6 +38,9 @@ class Color:
     This class wraps the colour.Color class and provides additional
     functionality for handling different color formats and conversions.
     """
+
+    # Define type for _color attribute
+    _color: ColourColor
 
     def __init__(self, value: Union[str, Tuple, List, Dict, "Color"]) -> None:
         """
@@ -82,8 +85,8 @@ class Color:
         # Check if HSL format: hsl(360, 100%, 100%)
         hsl_match = re.match(r"hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)", value)
         if hsl_match:
-            h, s, l = map(int, hsl_match.groups())
-            return ColourColor(hsl=(h / 360, s / 100, l / 100))
+            h, s, lightness = map(int, hsl_match.groups())
+            return ColourColor(hsl=(h / 360, s / 100, lightness / 100))
 
         # Assume hex format or named color
         try:
@@ -108,10 +111,12 @@ class Color:
         # Check if values are in 0-255 range
         if any(isinstance(v, int) and v > 1 for v in value):
             # Convert to 0.0-1.0 range
-            rgb = tuple(v / 255 if isinstance(v, int) and v > 1 else v for v in value[:3])
+            # Explicitly cast to ensure type safety
+            components = [v / 255 if isinstance(v, int) and v > 1 else float(v) for v in value[:3]]
         else:
-            rgb = value[:3]
-
+            # Explicitly cast to ensure type safety
+            components = [float(v) for v in value[:3]]
+        rgb = (components[0], components[1], components[2])
         try:
             return ColourColor(rgb=rgb)
         except ValueError as e:
@@ -141,11 +146,13 @@ class Color:
             # HSL format
             h = value["h"] / 360 if isinstance(value["h"], int) and value["h"] > 1 else value["h"]
             s = value["s"] / 100 if isinstance(value["s"], int) and value["s"] > 1 else value["s"]
-            l = value["l"] / 100 if isinstance(value["l"], int) and value["l"] > 1 else value["l"]
-            return ColourColor(hsl=(h, s, l))
+            lightness = value["l"] / 100 if isinstance(value["l"], int) and value["l"] > 1 else value["l"]
+            return ColourColor(hsl=(h, s, lightness))
 
+        # HSV format - convert to RGB
         elif all(k in value for k in ("h", "s", "v")):
             return self._convert_to_rgb(value)
+
         else:
             raise ValueError(f"Invalid color dictionary: {value}")
 
@@ -216,8 +223,8 @@ class Color:
         Returns:
             HSL tuple with values in range 0-360, 0-100, 0-100
         """
-        h, s, l = self._color.hsl
-        return (int(h * 360), int(s * 100), int(l * 100))
+        h, s, lightness = self._color.hsl
+        return (int(h * 360), int(s * 100), int(lightness * 100))
 
     @property
     def hsl_float(self) -> Tuple[float, float, float]:
@@ -245,21 +252,26 @@ class Color:
 
         # Hue calculation
         if diff == 0:
-            h = 0
+            h = 0.0
         elif max_val == r:
-            h = 60 * ((g - b) / diff % 6)
+            h = 60.0 * ((g - b) / diff % 6)
         elif max_val == g:
-            h = 60 * ((b - r) / diff + 2)
+            h = 60.0 * ((b - r) / diff + 2)
         else:  # max_val == b
-            h = 60 * ((r - g) / diff + 4)
+            h = 60.0 * ((r - g) / diff + 4)
 
         # Saturation calculation
-        s = 0 if max_val == 0 else diff / max_val
+        s = 0.0 if max_val == 0 else diff / max_val
 
         # Value calculation
         v = max_val
 
-        return (int(h), int(s * 100), int(v * 100))
+        # Make sure values are integers using round
+        h_int = round(h)
+        s_int = round(s * 100)
+        v_int = round(v * 100)
+
+        return (h_int, s_int, v_int)
 
     @property
     def cmyk(self) -> Tuple[int, int, int, int]:
@@ -280,7 +292,13 @@ class Color:
         m = (1 - g - k) / (1 - k)
         y = (1 - b - k) / (1 - k)
 
-        return (int(c * 100), int(m * 100), int(y * 100), int(k * 100))
+        # Make sure values are integers using round
+        c_int = round(c * 100)
+        m_int = round(m * 100)
+        y_int = round(y * 100)
+        k_int = round(k * 100)
+
+        return (c_int, m_int, y_int, k_int)
 
     def get_format(self, format_type: ColorFormat) -> Union[str, Tuple]:
         """
@@ -330,14 +348,14 @@ class Color:
             List of analogous colors
         """
         result = []
-        h, s, l = self.hsl
+        h, s, lightness = self.hsl
 
         for i in range(count):
             # Calculate new hue
             new_hue = (h + (i - count // 2) * angle) % 360
 
             # Create new color
-            new_color = Color({"h": new_hue, "s": s, "l": l})
+            new_color = Color({"h": new_hue, "s": s, "l": lightness})
             result.append(new_color)
 
         return result
@@ -349,10 +367,10 @@ class Color:
         Returns:
             The complementary color
         """
-        h, s, l = self.hsl
+        h, s, lightness = self.hsl
         h = (h + 180) % 360
 
-        return Color({"h": h, "s": s, "l": l})
+        return Color({"h": h, "s": s, "l": lightness})
 
     def triadic(self) -> List["Color"]:
         """
@@ -361,12 +379,12 @@ class Color:
         Returns:
             List of triadic colors
         """
-        h, s, l = self.hsl
+        h, s, lightness = self.hsl
 
         h1 = (h + 120) % 360
         h2 = (h + 240) % 360
 
-        return [self, Color({"h": h1, "s": s, "l": l}), Color({"h": h2, "s": s, "l": l})]
+        return [self, Color({"h": h1, "s": s, "l": lightness}), Color({"h": h2, "s": s, "l": lightness})]
 
     def tetradic(self) -> List["Color"]:
         """
@@ -375,7 +393,7 @@ class Color:
         Returns:
             List of tetradic colors
         """
-        h, s, l = self.hsl
+        h, s, lightness = self.hsl
 
         h1 = (h + 90) % 360
         h2 = (h + 180) % 360
@@ -383,9 +401,9 @@ class Color:
 
         return [
             self,
-            Color({"h": h1, "s": s, "l": l}),
-            Color({"h": h2, "s": s, "l": l}),
-            Color({"h": h3, "s": s, "l": l}),
+            Color({"h": h1, "s": s, "l": lightness}),
+            Color({"h": h2, "s": s, "l": lightness}),
+            Color({"h": h3, "s": s, "l": lightness}),
         ]
 
     def lighten(self, amount: float = 0.1) -> "Color":

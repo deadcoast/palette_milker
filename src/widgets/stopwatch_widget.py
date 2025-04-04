@@ -1,7 +1,11 @@
-from textual.app import App, ComposeResult
+from textual.app import App
+from textual.app import ComposeResult
 from textual.containers import Container
 from textual.reactive import reactive
-from textual.widgets import Button, Header, Footer, Static
+from textual.widgets import Button
+from textual.widgets import Footer
+from textual.widgets import Header
+from textual.widgets import Static
 
 
 class Stopwatch(Static):
@@ -76,9 +80,11 @@ class StopwatchApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(
-            Stopwatch(), Button("Start", id="start"), Button("Stop", id="stop"), Button("Reset", id="reset")
-        )
+        with Container():
+            yield Stopwatch()
+            yield Button("Start", id="start")
+            yield Button("Stop", id="stop")
+            yield Button("Reset", id="reset")
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

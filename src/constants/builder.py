@@ -10,10 +10,25 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
+from typing import TypedDict
+from typing import cast
 
-from .patterns import BORDER_CHARS
 from .patterns import PATTERNS
+
+
+# Define some type hints to help with the PATTERNS dictionary
+class PatternDict(TypedDict):
+    """Type for pattern dictionaries."""
+
+    HEADER: str
+    CONTENT: str
+    FOOTER: str
+    COLLAPSED_FOLDER: str
+    EXPANDED_FOLDER: str
+    ITEM: str
+    DEFAULT: List[str]
+    ACTIVE: List[str]
+    INACTIVE: List[str]
 
 
 def create_button(text: str, width: int = 15, active: bool = False) -> str:
@@ -29,7 +44,8 @@ def create_button(text: str, width: int = 15, active: bool = False) -> str:
         The button as a string
     """
     variant = "ACTIVE" if active else "DEFAULT"
-    pattern = PATTERNS["BUTTON"][variant]
+    # We know PATTERNS has the right structure, but the type checker doesn't
+    pattern = cast(Dict[str, List[str]], PATTERNS["BUTTON"])[variant]
 
     # Center the text
     text = f"  > {text}"
@@ -56,7 +72,8 @@ def create_color_button(content: str = " ", active: bool = False) -> str:
         The color button as a string
     """
     variant = "ACTIVE" if active else "INACTIVE"
-    pattern = PATTERNS["COLOR_BUTTON"][variant]
+    # We know PATTERNS has the right structure, but the type checker doesn't
+    pattern = cast(Dict[str, List[str]], PATTERNS["COLOR_BUTTON"])[variant]
 
     # Center the content
     centered_content = content.center(5)
@@ -80,7 +97,8 @@ def create_text_input(label: str, text: str = "", focused: bool = False) -> str:
         The text input as a string
     """
     variant = "FOCUSED" if focused else "DEFAULT"
-    pattern = PATTERNS["TEXT_INPUT"][variant]
+    # We know PATTERNS has the right structure, but the type checker doesn't
+    pattern = cast(Dict[str, List[str]], PATTERNS["TEXT_INPUT"])[variant]
 
     # Pattern is a list of strings, so format each line
     formatted_lines = [line.format(label=label, text=text) for line in pattern]
@@ -101,7 +119,8 @@ def create_palette_group(text: str = "", width: int = 16, active: bool = False) 
         The palette group as a string
     """
     variant = "ACTIVE" if active else "INACTIVE"
-    pattern = PATTERNS["PALETTE_GROUP"][variant]
+    # We know PATTERNS has the right structure, but the type checker doesn't
+    pattern = cast(Dict[str, List[str]], PATTERNS["PALETTE_GROUP"])[variant]
 
     # Fill characters depend on active state
     fill = "═" * (width - 2) if active else "─" * (width - 2)
@@ -124,10 +143,14 @@ def create_color_wheel(width: int = 60, height: int = 15, title: str = "COLOR WH
     Returns:
         The color wheel as a string
     """
-    # Prepare patterns
-    header_pattern = PATTERNS["COLOR_WHEEL"]["HEADER"]
-    content_pattern = PATTERNS["COLOR_WHEEL"]["CONTENT"]
-    footer_pattern = PATTERNS["COLOR_WHEEL"]["FOOTER"]
+    # Prepare patterns with proper casting to ensure type safety
+    # We know PATTERNS["COLOR_WHEEL"] has the right structure
+    patterns: Dict[str, Any] = cast(Dict[str, Any], PATTERNS)
+    color_wheel = cast(PatternDict, patterns["COLOR_WHEEL"])
+
+    header_pattern = color_wheel["HEADER"]
+    content_pattern = color_wheel["CONTENT"]
+    footer_pattern = color_wheel["FOOTER"]
 
     # Create title with padding
     title_pad = width - 20  # Accounting for "[⨀] [save]" and some padding
@@ -172,19 +195,23 @@ def create_browse_tree(items: Optional[List[Dict[str, Any]]] = None, width: int 
             {"type": "item", "name": "HEX"},
         ]
 
-    # Prepare patterns
-    header_pattern = PATTERNS["BROWSE_TREE"]["HEADER"]
-    collapsed_pattern = PATTERNS["BROWSE_TREE"]["COLLAPSED_FOLDER"]
-    expanded_pattern = PATTERNS["BROWSE_TREE"]["EXPANDED_FOLDER"]
-    item_pattern = PATTERNS["BROWSE_TREE"]["ITEM"]
-    footer_pattern = PATTERNS["BROWSE_TREE"]["FOOTER"]
+    # Prepare patterns with proper casting to ensure type safety
+    patterns: Dict[str, Any] = cast(Dict[str, Any], PATTERNS)
+    browse_tree = cast(PatternDict, patterns["BROWSE_TREE"])
+
+    header_pattern = browse_tree["HEADER"]
+    collapsed_pattern = browse_tree["COLLAPSED_FOLDER"]
+    expanded_pattern = browse_tree["EXPANDED_FOLDER"]
+    item_pattern = browse_tree["ITEM"]
+    footer_pattern = browse_tree["FOOTER"]
 
     # Create the browse tree
     lines = []
 
     # Header
     header = header_pattern.format(
-        fill="─" * (width - 2), space=" " * (width - 14)  # Accounting for "│ (⊕) Browse" (14 chars)
+        fill="─" * (width - 2),
+        space=" " * (width - 14),  # Accounting for "│ (⊕) Browse" (14 chars)
     )
     lines.extend(header.split("\n"))
 
@@ -194,15 +221,18 @@ def create_browse_tree(items: Optional[List[Dict[str, Any]]] = None, width: int 
             continue  # Already handled in header
         elif item["type"] == "collapsed_folder":
             line = collapsed_pattern.format(
-                name=item["name"], space=" " * (width - len(item["name"]) - 6)  # Accounting for "│ ▶ " and "│"
+                name=item["name"],
+                space=" " * (width - len(item["name"]) - 6),  # Accounting for "│ ▶ " and "│"
             )
         elif item["type"] == "expanded_folder":
             line = expanded_pattern.format(
-                name=item["name"], space=" " * (width - len(item["name"]) - 6)  # Accounting for "│ ▼ " and "│"
+                name=item["name"],
+                space=" " * (width - len(item["name"]) - 6),  # Accounting for "│ ▼ " and "│"
             )
         else:
             line = item_pattern.format(
-                name=item["name"], space=" " * (width - len(item["name"]) - 7)  # Accounting for "│    " and "│"
+                name=item["name"],
+                space=" " * (width - len(item["name"]) - 7),  # Accounting for "│    " and "│"
             )
         lines.append(line)
 
@@ -234,9 +264,7 @@ def create_dropdown(options: Optional[List[str]] = None, selected_index: int = 0
 
     # Header with selected option
     dropdown_line = f"~DROPDOWN:> {selected} ▼".ljust(width - 2)
-    dropdown = f"┌{'─' * (width - 2)}┐\n│ {dropdown_line} │\n└{'─' * (width - 2)}┘"
-
-    return dropdown
+    return f"┌{'─' * (width - 2)}┐\n│ {dropdown_line} │\n└{'─' * (width - 2)}┘"
 
 
 def create_export_panel(
@@ -263,15 +291,14 @@ def create_export_panel(
     format_selector = f"│ ┌{'─' * 29}┐ │\n│ │ ~FORMAT:> {selected_format.ljust(18)}▼ │ │\n│ └{'─' * 29}┘ │"
 
     # Create the content area
-    content_lines = []
+    content_lines: List[str] = []
     if content:
-        for line in content.split("\n"):
-            content_lines.append(f"│ {line.ljust(33)} │")
+        content_lines.extend(f"│ {line.ljust(33)} │" for line in content.split("\n"))
     else:
         content_lines = [f"│ {' ' * 33} │"]
 
     # Create the buttons
-    buttons = f"│ [OK] [CANCEL]                       │"
+    buttons = "│ [OK] [CANCEL]                       │"
 
     # Create the footer
     footer = f"└{'─' * 33}┘"
@@ -304,18 +331,12 @@ def build_color_wheel(width: int = 60, height: int = 15) -> str:
     lines = [top_border, header, separator]
 
     # Add content lines
-    for _ in range(height - 5):  # -5 for top border, header, separator, input, bottom border
-        lines.append(content_line)
-
-    # Add input and bottom
-    lines.append(bottom_separator)
-    lines.append(input_line)
-    lines.append(bottom_border)
-
+    lines.extend(content_line for _ in range(height - 5))
+    lines.extend((bottom_separator, input_line, bottom_border))
     return "\n".join(lines)
 
 
-def build_color_palette(colors: List[str] = None, active_index: int = 0) -> str:
+def build_color_palette(colors: Optional[List[str]] = None, active_index: int = 0) -> str:
     """
     Build a color palette with the exact specified design.
 
@@ -327,7 +348,8 @@ def build_color_palette(colors: List[str] = None, active_index: int = 0) -> str:
         The color palette as a string
     """
     # Default to 8 empty colors if none provided
-    colors = colors or [""] * 8
+    if colors is None:
+        colors = [""] * 8
     colors = colors[:8]  # Ensure at most 8 colors
     while len(colors) < 8:
         colors.append("")  # Pad to 8 colors
@@ -337,19 +359,22 @@ def build_color_palette(colors: List[str] = None, active_index: int = 0) -> str:
     for i, color in enumerate(colors):
         active = i == active_index
         button = create_color_button(color, active)
-        buttons.append(button.split("\n"))
+        # Split returns a list of strings, one for each line
+        button_lines = button.split("\n")
+        buttons.append(button_lines)
 
     # Join the buttons horizontally
-    lines = []
+    result_lines: List[str] = []
     for i in range(3):  # Each button is 3 lines tall
-        line = ""
-        for j, button in enumerate(buttons):
-            line += button[i]
+        button_row: str = ""
+        for j, button_lines in enumerate(buttons):
+            # Access the i-th line of the j-th button
+            button_row += button_lines[i]
             if j < len(buttons) - 1:
-                line += " "  # Add space between buttons
-        lines.append(line)
+                button_row += " "  # Add space between buttons
+        result_lines.append(button_row)
 
-    return "\n".join(lines)
+    return "\n".join(result_lines)
 
 
 def build_palette_management(
@@ -375,9 +400,6 @@ def build_palette_management(
     color_tools_text = "│ > Color Tools │"
     color_tools_bottom = "╠───────────────╝"
 
-    # Create the palette slots placeholder (would be filled with actual color buttons)
-    palette_slots = f"{'  ' * 9}"
-
     # Create the palette info line
     palette_info = f"Palette: {palette_name}{' ' * (40 - len(palette_name))}[Add New] [Rename] [Delete]"
 
@@ -387,40 +409,33 @@ def build_palette_management(
     palette_groups_bottom = "╠════════════════╝"
 
     palette_groups = []
-    for i in range(palette_count):
-        if i == active_palette_index:
-            # Active palette group
-            top = "┬" + "─" * (palette_group_width - 2) + "┐"
-            middle = "├─" + " " * (palette_group_width - 3) + "│"
-            bottom = "┴" + "─" * (palette_group_width - 2) + "┘"
-        else:
-            # Inactive palette group
-            top = "┬" + "─" * (palette_group_width - 2) + "┐"
-            middle = "├─" + " " * (palette_group_width - 3) + "│"
-            bottom = "┴" + "─" * (palette_group_width - 2) + "┘"
-
+    for _ in range(palette_count):
+        # Active palette group
+        top = "┬" + "─" * (palette_group_width - 2) + "┐"
+        middle = "├─" + " " * (palette_group_width - 3) + "│"
+        bottom = "┴" + "─" * (palette_group_width - 2) + "┘"
         palette_groups.append((top, middle, bottom))
 
     # Horizontal joining of palette groups
     palette_groups_lines = []
     for i in range(3):  # Each palette group is 3 lines
-        line = ""
-        for j in range(palette_count):
-            line += palette_groups[j][i]
+        line = "".join(palette_groups[j][i] for j in range(palette_count))
         if i == 2 and palette_count > 0:  # Add the closing character to the last line
             line += "┴─"
         palette_groups_lines.append(line)
 
     # Build the complete palette management UI
-    lines = []
-    lines.append(f"{color_tools}{' ' * 6}{'  ' * 8}")
-    lines.append(f"{color_tools_text}{' ' * 6}{'  ' * 8}")
-    lines.append(f"{color_tools_bottom}{' ' * 6}{'  ' * 8}")
-    lines.append(f"{palette_groups_top}{' ' * 5}{palette_info}")
-    lines.append(f"{palette_groups_middle}" + palette_groups_lines[0])
-    lines.append(f"{palette_groups_bottom}" + palette_groups_lines[1])
-    lines.append("╚" + "─" * 9 + "┴" + "─" * 4 + palette_groups_lines[2])
-
+    lines = [
+        f"{color_tools}{' ' * 6}{'  ' * 8}",
+        f"{color_tools_text}{' ' * 6}{'  ' * 8}",
+        f"{color_tools_bottom}{' ' * 6}{'  ' * 8}",
+        f"{palette_groups_top}{' ' * 5}{palette_info}",
+        *(
+            f"{palette_groups_middle}" + palette_groups_lines[0],
+            f"{palette_groups_bottom}" + palette_groups_lines[1],
+            "╚" + "─" * 9 + "┴" + "─" * 4 + palette_groups_lines[2],
+        ),
+    ]
     return "\n".join(lines)
 
 
@@ -488,6 +503,27 @@ def build_browse_tree() -> str:
     return "\n".join(lines)
 
 
+def compose_layout(components: Dict[Tuple[int, int], str]) -> str:
+    """
+    Compose a layout of UI components.
+
+    Args:
+        components: Dictionary mapping (row, col) positions to component strings
+
+    Returns:
+        The composed layout as a string
+    """
+    # We need to implement this function to replace build_layout
+    # A simple implementation would be to join components with newlines
+    result: List[str] = []
+    # Extract components and sort them by position
+    sorted_components = sorted(components.items())
+    # Only take the component string, not the position tuple
+    result = [component for _, component in sorted_components]
+
+    return "\n".join(result)
+
+
 def compose_complete_ui(width: int = 80, height: int = 25) -> str:
     """
     Compose the complete UI by combining all elements.
@@ -500,7 +536,7 @@ def compose_complete_ui(width: int = 80, height: int = 25) -> str:
         The complete UI as a string
     """
     # Define component positions
-    components = {
+    components: Dict[Tuple[int, int], str] = {
         (0, 0): "╔───────────────╦" + "─" * (width - 17) + "╗\n" + "│  > Settings   │" + " " * (width - 19) + "[x] │",
         (2, 0): "╠───────────────╝    ╔"
         + "─" * (width - 32)
@@ -524,4 +560,4 @@ def compose_complete_ui(width: int = 80, height: int = 25) -> str:
     }
 
     # Build the layout
-    return build_layout(components)
+    return compose_layout(components)

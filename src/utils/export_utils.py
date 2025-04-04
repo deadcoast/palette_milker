@@ -5,10 +5,14 @@ This module provides utility functions for exporting color palettes
 in various formats, implementing the exact export styles specified.
 """
 
-from typing import Dict, List, Callable, Optional, Union, Any, Tuple
 import json
 import os
 import struct
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 from ..models.color_model import Color
 from .utter import UTTER
@@ -273,8 +277,8 @@ def export_ase(colors: List[Color], palette_name: str) -> bytes:
 
     # Add each color block
     for color in colors:
-        # Block type (1 = color)
-        block_type = struct.pack(">H", 1)
+        # No need to store block type, just include it directly in the content
+        content += struct.pack(">H", 1)  # Block type (1 = color)
 
         # Block length (will be calculated later)
         block_length_pos = len(content)
