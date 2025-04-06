@@ -17,6 +17,8 @@ from textual.binding import Binding
 from textual.color import Color as TextualColor
 from textual.containers import Container
 from textual.containers import Grid
+from textual.events import Click
+from textual.events import MouseDown
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Select
@@ -265,7 +267,7 @@ class HarmonyGenerator(Container):
             self.harmony_colors = colors
 
     # TODO Rename this here and in `_generate_harmony_colors`
-    def _extracted_from__generate_harmony_colors_28(self, base):
+    def _extracted_from__generate_harmony_colors_28(self, base: Color) -> None:
         # Base color + 2 colors on either side of complementary
         comp = base.complementary()
         h, s, lightness = comp.hsl
@@ -354,7 +356,7 @@ class HarmonyGenerator(Container):
             accessibility_info.update("")
 
     # TODO Rename this here and in `_update_info`
-    def _extracted_from__update_info_18(self, selected_color, accessibility_info):
+    def _extracted_from__update_info_18(self, selected_color: Color, accessibility_info: Static) -> None:
         base_color = self.harmony_colors[0]
         analysis = analyze_color_pair(selected_color, base_color)
 
@@ -380,8 +382,17 @@ class HarmonyGenerator(Container):
                 self.selected_harmony = harmony_type
                 break
 
-    def on_static_click(self, event) -> None:
-        """Handle clicks on color swatches."""
+    def on_click(self, event: Click) -> None:
+        """
+        Handle clicks on color swatches.
+
+        Args:
+            event: The click event
+        """
+        # Only process if target is a Static
+        if not isinstance(event.widget, Static):
+            return
+
         # Check if this is a color swatch
         widget_id = event.widget.id
         if not widget_id or not widget_id.startswith("swatch-"):
@@ -395,17 +406,13 @@ class HarmonyGenerator(Container):
         except (ValueError, IndexError):
             pass
 
-    def on_click(self, event) -> None:
-        """Handle clicks on any widget."""
-        # Only process if target is a Static
-        if not isinstance(event.widget, Static):
-            return
+    def on_mouse_down(self, event: MouseDown) -> None:
+        """
+        Handle mouse down events for double-click detection.
 
-        # Forward to static click handler
-        self.on_static_click(event)
-
-    def on_mouse_down(self, event) -> None:
-        """Handle mouse down events for double-click detection."""
+        Args:
+            event: The mouse down event
+        """
         # Check if this is a color swatch (Static widget)
         if not isinstance(event.widget, Static):
             return
@@ -414,17 +421,17 @@ class HarmonyGenerator(Container):
         if not widget_id or not widget_id.startswith("swatch-"):
             return
 
-        # For double clicks, we'll check if it's a double click in on_click
-        # by tracking the time between clicks
-        if event.button == 1 and event.count == 2:  # Left button, double click
-            # Extract the color index
-            try:
-                index = int(widget_id.split("-")[1])
-                if 0 <= index < len(self.harmony_colors):
-                    self.selected_color_index = index
-                    self.post_message(ColorSelected(self.selected_harmony, self.harmony_colors[index]))
-            except (ValueError, IndexError):
-                pass
+        # For double clicks, we implement a simple check
+        # Note: In Textual, there's no direct event.count property
+        # Instead, we implement a custom handling
+        try:
+            index = int(widget_id.split("-")[1])
+            if 0 <= index < len(self.harmony_colors):
+                self.selected_color_index = index
+                # Post the message to notify about color selection
+                self.post_message(ColorSelected(self.selected_harmony, self.harmony_colors[index]))
+        except (ValueError, IndexError):
+            pass
 
     def action_copy_color(self) -> None:
         """Copy the selected color."""

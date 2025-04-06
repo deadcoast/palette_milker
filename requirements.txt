@@ -1,1 +1,10 @@
--r requirements-dev.txt
+# Core dependencies for palette_milker
+
+textual>=3.0.1
+rich>=14.0.0
+watchdog>=6.0.0
+pillow>=11.1.0
+colour>=0.1.5
+scikit-learn>=1.6.1
+numpy>=2.2.4
+typing_extensions>=4.13.0

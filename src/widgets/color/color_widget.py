@@ -6,12 +6,13 @@ providing the exact terminal-based UI design specified.
 """
 
 import itertools
+from typing import ClassVar
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
-# Import from colour library needs installation: pip install colour
-from color import Color
 from rich.console import RenderableType
 from rich.text import Text
 from textual import events
@@ -24,6 +25,9 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Button
 from textual.widgets import Static
+
+# Import Color class from our own models
+from src.models.color_model import Color
 
 
 # These imports require custom modules to be in the project's path
@@ -139,7 +143,7 @@ class ColorWheel(Container):
                     r, g, b = v, p, q
 
                 # Create color object
-                color = Color(rgb=(r, g, b))
+                color = Color({"r": r * 255, "g": g * 255, "b": b * 255})
                 self.color_grid[x, y] = color
             except ValueError:
                 # Fallback if color creation fails
@@ -156,7 +160,7 @@ class ColorWheel(Container):
 
         yield Static(id="color-grid")
         # Hex input area
-        yield ColorInput(current_color=self.selected_color.hex_l, widget_id="hex-input")
+        yield ColorInput(current_color=self.selected_color.hex, widget_id="hex-input")
 
     def on_mount(self) -> None:
         """Handle the mount event."""
@@ -193,7 +197,7 @@ class ColorWheel(Container):
 
                     # Update hex input
                     hex_input = self.query_one("#hex-input", ColorInput)
-                    hex_input.current_color = self.selected_color.hex_l
+                    hex_input.current_color = self.selected_color.hex
 
                     # Notify of color selection
                     self.post_message(self.ColorSelected(self.selected_color))
@@ -301,7 +305,7 @@ class ColorInput(Widget):
     """
 
     # Define key bindings
-    BINDINGS = [
+    BINDINGS: ClassVar[List[Union[Binding, Tuple[str, str], Tuple[str, str, str]]]] = [
         Binding("enter", "apply_color", "Apply"),
         Binding("escape", "reset_color", "Reset"),
         Binding("backspace", "backspace", "Delete"),
@@ -381,7 +385,7 @@ class ColorInput(Widget):
             color = Color(f"#{hex_value}")
 
             # Update current color
-            self.current_color = color.hex_l
+            self.current_color = color.hex
 
             # Notify of color change
             self.post_message(self.ColorChanged(color))
@@ -411,4 +415,5 @@ class ColorInput(Widget):
                 color: The new color
             """
             self.color = color
+            super().__init__()
             super().__init__()

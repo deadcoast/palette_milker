@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.color import Color as TextualColor
@@ -356,7 +357,8 @@ class AccessibilityScreen(Screen):
             self._extracted_from_watch_background_color_4()
 
     # TODO Rename this here and in `watch_foreground_color` and `watch_background_color`
-    def _extracted_from_watch_background_color_4(self):
+    def _extracted_from_watch_background_color_4(self) -> None:
+        """Update data and UI after a color change."""
         self._update_accessibility_data()
         self._update_preview()
         self._update_suggestions()
@@ -392,7 +394,7 @@ class AccessibilityScreen(Screen):
                 ratio_value.update(f"{self.contrast_ratio:.2f}:1")
 
             # Update WCAG compliance indicators
-            info_values = list(self.query(".info-grid .info-value"))
+            info_values = list(self.query(".info-grid .info-value").results(Static))
             if len(info_values) >= 5:  # Ensure we have enough elements
                 # Foreground and background
                 info_values[0].update(self.foreground_color.hex)
@@ -408,7 +410,15 @@ class AccessibilityScreen(Screen):
             self.app.log.error(f"Error updating preview: {e}")
 
     # TODO Rename this here and in `_update_preview`
-    def _extracted_from__update_preview_28(self, arg0, info_values, arg2):
+    def _extracted_from__update_preview_28(self, arg0: str, info_values: List[Static], arg2: int) -> None:
+        """
+        Update a compliance indicator in the info grid.
+
+        Args:
+            arg0: The compliance key to check (e.g., "AA_normal")
+            info_values: List of Static widgets containing the values
+            arg2: Index of the widget to update
+        """
         # WCAG AA
         aa_class = "pass" if self.wcag_compliance.get(arg0, False) else "fail"
         aa_symbol = "✓" if self.wcag_compliance.get(arg0, False) else "✗"
@@ -513,9 +523,17 @@ class AccessibilityScreen(Screen):
                 except Exception:
                     pass
 
-    def on_static_click(self, event) -> None:
-        """Handle clicks on color swatches."""
+    def on_static_click(self, event: events.Click) -> None:
+        """
+        Handle clicks on color swatches.
+
+        Args:
+            event: The click event
+        """
         # Check if this is a color swatch
+        if event.widget is None or not hasattr(event.widget, "id"):
+            return
+
         widget_id = event.widget.id
         if not widget_id or not widget_id.startswith("color-"):
             return
@@ -527,9 +545,17 @@ class AccessibilityScreen(Screen):
         except (ValueError, IndexError):
             pass
 
-    def on_container_click(self, event) -> None:
-        """Handle clicks on suggestion items."""
+    def on_container_click(self, event: events.Click) -> None:
+        """
+        Handle clicks on suggestion items.
+
+        Args:
+            event: The click event
+        """
         # Check if this is a suggestion item
+        if event.widget is None or not hasattr(event.widget, "id"):
+            return
+
         container = event.widget
         container_id = container.id
 
@@ -588,7 +614,13 @@ class AccessibilityScreen(Screen):
         self._extracted_from_action_optimize_text_20("Optimized text color for current background")
 
     # TODO Rename this here and in `on_container_click` and `action_optimize_text`
-    def _extracted_from_action_optimize_text_20(self, arg0):
+    def _extracted_from_action_optimize_text_20(self, arg0: str) -> None:
+        """
+        Update UI after applying color changes.
+
+        Args:
+            arg0: The notification message to display
+        """
         self._update_preview()
         self._update_suggestions()
         self._update_swatch_selection()

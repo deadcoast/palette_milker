@@ -10,6 +10,7 @@ from typing import List
 from typing import Literal
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 from textual import events
 from textual.app import ComposeResult
@@ -417,7 +418,7 @@ class TextInputWidget(Input):
     """
 
     # Define key bindings
-    BINDINGS: ClassVar[List[Binding]] = [
+    BINDINGS: ClassVar[List[Union[Binding, Tuple[str, str], Tuple[str, str, str]]]] = [
         Binding("enter", "submit", "Submit"),
         Binding("escape", "cancel", "Cancel"),
     ]
@@ -559,12 +560,12 @@ class ColorWheelWidget(Container):
         with Container(id="controls"):
             with Horizontal():
                 # Hex input control
-                yield TextInputWidget(label="HEX", text=self.selected_color, id="hex-input")
+                yield TextInputWidget(label="HEX", text=self.selected_color, widget_id="hex-input")
 
                 # Buttons container
                 with Horizontal(id="buttons"):
-                    yield ButtonWidget(text="Pick", id="pick-button")
-                    yield ButtonWidget(text="Save", id="save-button")
+                    yield ButtonWidget(text="Pick", widget_id="pick-button")
+                    yield ButtonWidget(text="Save", widget_id="save-button")
 
     def on_mount(self) -> None:
         """Handle widget mounting."""
@@ -688,7 +689,7 @@ class PaletteSlots(Container):
 
         # Create interactive color buttons that will overlay on the ASCII art
         for i, color in enumerate(self.palette_colors):
-            yield ColorButtonWidget(color=color, active=i == self.active_index, id=f"color-slot-{i}")
+            yield ColorButtonWidget(color=color, active=i == self.active_index, widget_id=f"color-slot-{i}")
 
     def watch_active_index(self, old_index: int, new_index: int) -> None:
         """Watch for changes to the active index and update UI accordingly.
@@ -805,12 +806,12 @@ class PaletteManagementWidget(Container):
         )
 
         # Interactive components
-        yield ButtonWidget(text="Add New", id="add-palette-button")
-        yield ButtonWidget(text="Rename", id="rename-palette-button")
-        yield ButtonWidget(text="Delete", id="delete-palette-button")
+        yield ButtonWidget(text="Add New", widget_id="add-palette-button")
+        yield ButtonWidget(text="Rename", widget_id="rename-palette-button")
+        yield ButtonWidget(text="Delete", widget_id="delete-palette-button")
 
         # Palette slots
-        yield PaletteSlots(id="palette-slots")
+        yield PaletteSlots(widget_id="palette-slots")
 
     def watch_palette_name(self, old_name: str, new_name: str) -> None:
         """Watch for changes to the palette name.
@@ -1039,8 +1040,8 @@ class NamingDialogWidget(Container):
 
         # Buttons container for layout
         with Horizontal(id="dialog-buttons"):
-            yield ButtonWidget(text="OK", id="naming-ok-button", variant="primary")
-            yield ButtonWidget(text="Cancel", id="naming-cancel-button")
+            yield ButtonWidget(text="OK", widget_id="naming-ok-button", variant="primary")
+            yield ButtonWidget(text="Cancel", widget_id="naming-cancel-button")
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle changes to the input field.
@@ -1181,8 +1182,8 @@ class ExportDialogWidget(Container):
 
         # Buttons container for layout
         with Horizontal(id="dialog-buttons"):
-            yield ButtonWidget(text="Export", id="export-ok-button", variant="primary")
-            yield ButtonWidget(text="Cancel", id="export-cancel-button")
+            yield ButtonWidget(text="Export", widget_id="export-ok-button", variant="primary")
+            yield ButtonWidget(text="Cancel", widget_id="export-cancel-button")
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle changes to the input field.

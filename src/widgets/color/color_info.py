@@ -132,7 +132,8 @@ class ColorInfo(Static):
 
         # Use app's method if available
         if hasattr(app_instance, "get_color_string"):
-            return app_instance.get_color_string(color, color_format)
+            # Explicitly cast the return value to ensure proper typing
+            return cast(str, app_instance.get_color_string(color, color_format))
 
         # Fallback implementation
         if color_format == "hsl":
@@ -144,7 +145,7 @@ class ColorInfo(Static):
             return color.hex
 
     # TODO Rename this here and in `_get_color_string`
-    def _extracted_from__get_color_string_15(self, color):
+    def _extracted_from__get_color_string_15(self, color: Color) -> str:
         # Simple HSL approximation
         import colorsys
 

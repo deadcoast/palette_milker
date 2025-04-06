@@ -26,6 +26,7 @@ from textual.widgets import Static
 
 from ..messages.palette_messages import ColorSelectionChanged
 from ..widgets.color.color_details import ColorDetails
+from ..widgets.color.color_details import ColorValueChanged
 from ..widgets.color.color_wheel import ColorWheel
 
 
@@ -134,7 +135,7 @@ class ColorPickerScreen(Screen):
         # Left panel with color wheel
         with Container(id="left-panel"):
             yield Static("COLOR WHEEL", classes="panel-title")
-            yield ColorWheel(id="color-wheel")
+            yield ColorWheel(widget_id="color-wheel")
 
             with Horizontal(id="action-buttons"):
                 yield Button("Add to Palette", id="add-to-palette", variant="primary")
@@ -143,7 +144,7 @@ class ColorPickerScreen(Screen):
         # Right panel with detailed color controls
         with Container(id="right-panel"):
             yield Static("COLOR DETAILS", classes="panel-title")
-            yield ColorDetails(self.selected_color, id="color-details")
+            yield ColorDetails(self.selected_color, widget_id="color-details")
 
         yield Footer()
 
@@ -175,15 +176,28 @@ class ColorPickerScreen(Screen):
             details.display_format = new_format
 
     # Handle ColorWheel color changes
-    def on_color_wheel_selected_color(self, message) -> None:
-        """React to color selection in the color wheel."""
-        color_value = message.wheel.selected_color
+    def on_color_wheel_selected_color(self, message: Message) -> None:
+        """
+        React to color selection in the color wheel.
+
+        Args:
+            message: Message containing the selected color
+        """
+        color_value = message.wheel.selected_color  # type: ignore
         self.selected_color = Color.parse(color_value)
 
     # Handle ColorDetails color changes
-    def on_color_details_color_value_changed(self, message) -> None:
-        """React to color changes from the details widget."""
-        self.selected_color = message.color
+    def on_color_details_color_value_changed(self, message: ColorValueChanged) -> None:
+        """
+        React to color changes from the details widget.
+
+        Args:
+            message: Message containing the new color
+        """
+        if isinstance(message.color, Color):
+            self.selected_color = message.color
+        else:
+            self.selected_color = Color.parse(message.color)
 
     # Handle button presses
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -293,7 +307,15 @@ class ColorPickerScreen(Screen):
         self._extracted_from_action_adjust_lightness_15(h, s, lightness)
 
     # TODO Rename this here and in `action_adjust_hue`, `action_adjust_saturation` and `action_adjust_lightness`
-    def _extracted_from_action_adjust_lightness_15(self, h, s, lightness):
+    def _extracted_from_action_adjust_lightness_15(self, h: int, s: int, lightness: int) -> None:
+        """
+        Update the selected color based on HSL values.
+
+        Args:
+            h: Hue value (0-360)
+            s: Saturation value (0-100)
+            lightness: Lightness value (0-100)
+        """
         import colorsys
 
         h_norm = h / 360

@@ -7,36 +7,26 @@ implementing the exact terminal-based UI design specified.
 
 import json
 from typing import Any
-from typing import Callable
 from typing import ClassVar
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 from typing import cast
 
 from colour import Color
-from rich.console import RenderableType
-from rich.text import Text
 from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.containers import Horizontal
-from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Button
-from textual.widgets import Input
 from textual.widgets import Select
 from textual.widgets import Static
 from textual.widgets import TextArea
 
-from constants.builder import create_button
-from constants.builder import create_dropdown
-from constants.builder import create_export_panel
 from src.utils.utter import UTTER
-from widgets.ascii_widget import ASCIIWidget
 
 
 def export_palette_to_utter(palette: Dict[str, Any]) -> Dict[str, Any]:
@@ -55,7 +45,7 @@ def export_palette_to_utter(palette: Dict[str, Any]) -> Dict[str, Any]:
     Raises:
         ValueError: If palette data is invalid
     """
-    if not isinstance(palette, dict) or 'colors' not in palette:
+    if not isinstance(palette, dict) or "colors" not in palette:
         raise ValueError("Invalid palette data - must contain colors list")
 
     # Create an UTTER instance from the palette colors
@@ -65,10 +55,7 @@ def export_palette_to_utter(palette: Dict[str, Any]) -> Dict[str, Any]:
     color_dict: Dict[str, str] = {}
 
     # Add standard color mappings based on position
-    color_names = [
-        "primary", "secondary", "tertiary", "accent",
-        "light", "dark", "neutral", "highlight"
-    ]
+    color_names = ["primary", "secondary", "tertiary", "accent", "light", "dark", "neutral", "highlight"]
 
     # Map available colors to standard names
     for i, color in enumerate(colors):
@@ -102,7 +89,7 @@ def export_palette_to_utter(palette: Dict[str, Any]) -> Dict[str, Any]:
             "palette": palette,
             "utter": utter,
             "raw": utter.to_dict(),
-            "json": utter.to_json()
+            "json": utter.to_json(),
         }
     except Exception as e:
         # Fallback to simple CSS if UTTER creation fails
@@ -111,12 +98,7 @@ def export_palette_to_utter(palette: Dict[str, Any]) -> Dict[str, Any]:
             content += f"  --color-{i + 1}: {color};\n"
         content += "}\n"
 
-        return {
-            "format": "CSS",
-            "content": content,
-            "palette": palette,
-            "error": str(e)
-        }
+        return {"format": "CSS", "content": content, "palette": palette, "error": str(e)}
 
 
 class FormatSelector(Widget):
@@ -241,7 +223,7 @@ class FormatSelector(Widget):
             self.format_name = format_name
             super().__init__()
 
-    def on_export_button_pressed(self):
+    def on_export_button_pressed(self) -> None:
         """Handle export button press."""
         # Get the active palette from app (using cast for type safety)
         app = cast(Any, self.app)
@@ -495,7 +477,7 @@ class ExportPanel(Container):
                 preview_widget.text = preview_content
         except Exception as e:
             # Handle any errors that might occur during preview generation
-            error_message = f"Error updating preview: {str(e)}"
+            error_message = f"Error updating preview: {e!s}"
             try:
                 # Try to update the preview widget with the error message
                 preview_widget = self.query_one("#export-preview", TextArea)
@@ -511,7 +493,7 @@ class ExportPanel(Container):
         yield Select(
             [(format_name, format_name) for format_name in self.FORMATS],
             value=self.selected_format,
-            id="format-selector"
+            id="format-selector",
         )
 
         # Export button
@@ -553,17 +535,13 @@ class ExportPanel(Container):
                 hex_part = color.lstrip("#")
 
                 # Check for valid hex format (3, 4, 6, or 8 digits)
-                if len(hex_part) in (3, 4, 6, 8):
-                    # Check if it's a valid hex string
-                    if all(c in "0123456789ABCDEFabcdef" for c in hex_part):
-                        # At this point, we have a valid hex color, but let's still
-                        # standardize it via the Color class in a single try-except
-                        try:
-                            c = Color(color)
-                            safe_color = c.hex_l
-                        except Exception:
-                            # Keep the default white
-                            pass
+                if len(hex_part) in (3, 4, 6, 8) and all(c in "0123456789ABCDEFabcdef" for c in hex_part):
+                    try:
+                        c = Color(color)
+                        safe_color = c.hex_l
+                    except Exception:
+                        # Keep the default white
+                        pass
 
             sanitized_colors.append(safe_color)
 
@@ -616,10 +594,7 @@ class ExportPanel(Container):
 
             elif format_name == "UTTER":
                 # Create a palette dictionary for UTTER
-                palette_dict = {
-                    "name": palette_name,
-                    "colors": colors
-                }
+                palette_dict = {"name": palette_name, "colors": colors}
 
                 # Export using the UTTER format
                 export_data = export_palette_to_utter(palette_dict)

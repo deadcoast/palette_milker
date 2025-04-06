@@ -6,8 +6,11 @@ and import/export operations.
 """
 
 import random
+from typing import Any
 from typing import List
 from typing import Union
+
+from PIL import Image
 
 from ..models.color_model import Color
 
@@ -163,34 +166,29 @@ def generate_harmonic_palette(
 
 def import_colors_from_image(image_path: str, count: int = 8, method: str = "dominant") -> List[Color]:
     """
-    Extract a color palette from an image.
+    Extract colors from an image file.
 
     Args:
         image_path: Path to the image file
         count: Number of colors to extract
-        method: Method to use for extraction ("dominant", "kmeans", "quantize")
+        method: Color extraction method: 'dominant', 'kmeans', or 'quantize'
 
     Returns:
-        A list of Color objects extracted from the image
+        List of Color objects
 
     Raises:
-        ImportError: If required libraries are not installed
-        FileNotFoundError: If the image file does not exist
-        ValueError: If the image cannot be processed
+        FileNotFoundError: If the image file is not found
+        ValueError: If there is an error processing the image or the method is unsupported
+        ImportError: If kmeans method is requested but scikit-learn is not installed
     """
     try:
-        # Optional dependencies - imported at runtime
-        # pip install numpy pillow
         import numpy as np
-        from PIL import Image
-    except ImportError as e:
-        raise ImportError(
-            "Image processing requires additional libraries. Please install them with: pip install pillow numpy"
-        ) from e
+    except ImportError as exc:
+        raise ImportError("This function requires numpy. Please install it with: pip install numpy") from exc
 
     try:
         # Open the image
-        img = Image.open(image_path)
+        img: Image.Image = Image.open(image_path)
 
         if method == "dominant":
             return _extracted_from_import_colors_from_image_37(img, np, count)
@@ -205,15 +203,15 @@ def import_colors_from_image(image_path: str, count: int = 8, method: str = "dom
                 ) from exc
 
             # Resize for faster processing
-            img = img.copy()
-            img.thumbnail((100, 100))
+            img_copy: Image.Image = img.copy()
+            img_copy.thumbnail((100, 100))
 
             # Convert to RGB mode if necessary
-            if img.mode != "RGB":
-                img = img.convert("RGB")
+            if img_copy.mode != "RGB":
+                img_copy = img_copy.convert("RGB")
 
             # Get pixel data
-            pixels = np.array(img.getdata(), dtype=np.float64) / 255.0
+            pixels = np.array(img_copy.getdata(), dtype=np.float64) / 255.0
 
             # Perform k-means clustering
             kmeans = KMeans(n_clusters=count)
@@ -223,7 +221,7 @@ def import_colors_from_image(image_path: str, count: int = 8, method: str = "dom
             colors = kmeans.cluster_centers_
 
             # Convert to Color objects
-            palette = []
+            palette: List[Color] = []
             for color in colors:
                 r, g, b = color
                 palette.append(Color((r, g, b)))
@@ -241,23 +239,37 @@ def import_colors_from_image(image_path: str, count: int = 8, method: str = "dom
         raise ValueError(f"Error processing image: {e!s}") from e
 
 
-# TODO Rename this here and in `import_colors_from_image`
-def _extracted_from_import_colors_from_image_114(img, count):
+def _extracted_from_import_colors_from_image_114(img: Image.Image, count: int) -> List[Color]:
+    """
+    Extract colors from an image using Pillow's quantization.
+
+    Args:
+        img: The image to extract colors from
+        count: Number of colors to extract
+
+    Returns:
+        List of Color objects
+    """
     # Use Pillow's quantization
-    img = img.copy()
+    img_copy: Image.Image = img.copy()
 
     # Convert to RGB mode if necessary
-    if img.mode != "RGB":
-        img = img.convert("RGB")
+    if img_copy.mode != "RGB":
+        img_copy = img_copy.convert("RGB")
 
     # Quantize the image
-    quantized = img.quantize(colors=count)
+    quantized = img_copy.quantize(colors=count)
 
     # Get the palette
-    palette_data = quantized.getpalette()[: count * 3]
+    raw_palette = quantized.getpalette()
+    if raw_palette is None:
+        # Fallback if palette is None
+        return _extracted_from_import_colors_from_image_37(img, __import__("numpy"), count)
+
+    palette_data = raw_palette[: count * 3]
 
     # Convert to Color objects
-    palette = []
+    palette: List[Color] = []
     for i in range(0, len(palette_data), 3):
         r, g, b = palette_data[i : i + 3]
         color_hex = f"#{r:02x}{g:02x}{b:02x}"
@@ -266,18 +278,28 @@ def _extracted_from_import_colors_from_image_114(img, count):
     return _extracted_from_import_colors_from_image_64(palette, count)
 
 
-# TODO Rename this here and in `import_colors_from_image`
-def _extracted_from_import_colors_from_image_37(img, np, count):
+def _extracted_from_import_colors_from_image_37(img: Image.Image, np: Any, count: int) -> List[Color]:
+    """
+    Extract dominant colors from an image.
+
+    Args:
+        img: The image to extract colors from
+        np: Numpy module (passed as argument to avoid global import)
+        count: Number of colors to extract
+
+    Returns:
+        List of Color objects
+    """
     # Simple method: resize and get dominant colors
-    img = img.copy()
-    img.thumbnail((100, 100))
+    img_copy: Image.Image = img.copy()
+    img_copy.thumbnail((100, 100))
 
     # Convert to RGB mode if necessary
-    if img.mode != "RGB":
-        img = img.convert("RGB")
+    if img_copy.mode != "RGB":
+        img_copy = img_copy.convert("RGB")
 
     # Get pixel data
-    pixels = np.array(img.getdata())
+    pixels = np.array(img_copy.getdata())
 
     # Find unique colors and their counts
     unique_colors, counts = np.unique(pixels, axis=0, return_counts=True)
@@ -287,7 +309,7 @@ def _extracted_from_import_colors_from_image_37(img, np, count):
     unique_colors = unique_colors[indices]
 
     # Convert to Color objects
-    palette = []
+    palette: List[Color] = []
     for i in range(min(count, len(unique_colors))):
         r, g, b = unique_colors[i]
         color_hex = f"#{r:02x}{g:02x}{b:02x}"
@@ -296,8 +318,17 @@ def _extracted_from_import_colors_from_image_37(img, np, count):
     return _extracted_from_import_colors_from_image_64(palette, count)
 
 
-# TODO Rename this here and in `import_colors_from_image`
-def _extracted_from_import_colors_from_image_64(palette, count):
+def _extracted_from_import_colors_from_image_64(palette: List[Color], count: int) -> List[Color]:
+    """
+    Fill a palette to reach the requested color count.
+
+    Args:
+        palette: The existing palette to build upon
+        count: Total number of colors required
+
+    Returns:
+        List of Color objects with the requested count
+    """
     # Generate variants of existing colors
     idx = 0
     # Fill remaining slots if needed

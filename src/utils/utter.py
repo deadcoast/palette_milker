@@ -1,4 +1,5 @@
 # src/utils/utter.py
+from typing import Any
 from typing import ClassVar
 from typing import Dict
 from typing import TypeVar
@@ -93,26 +94,25 @@ class UTTER:
             # Prepare all variable values outside the loop
             processed_values = {}
 
-            # Process all variables first, collecting results
+            # Define a safer accessor function instead of using try-except in the loop
+            def get_safe_value(color_ref: Any) -> str:
+                """Get a safe color value from a reference, with fallback to default color."""
+                # For non-string values, use default
+                if not isinstance(color_ref, str):
+                    return default_color
+
+                # For normal strings (non-references)
+                if not color_ref.startswith("$"):
+                    return color_ref
+
+                # For color references, get from palette with fallback
+                color_key = color_ref[1:]  # Remove the $ prefix
+                return sanitized_palette.get(color_key, default_color)
+
+            # Process all variables without try-except in the loop
             for var_name, color_ref in bottle_template.items():
-                try:
-                    # Process the color reference
-                    if isinstance(color_ref, str):
-                        # If the value is a special format string (non-color)
-                        if not color_ref.startswith("$"):
-                            processed_values[var_name] = color_ref
-                        # If the value is a color reference (starts with $)
-                        else:
-                            color_key = color_ref[1:]  # Remove the $ prefix
-                            processed_values[var_name] = sanitized_palette.get(color_key, default_color)
-                    else:
-                        # Handle non-string values
-                        processed_values[var_name] = default_color
-                except Exception as e:
-                    # If any error occurs, use default color and continue
-                    processed_values[var_name] = default_color
-                    # Optionally log the error
-                    print(f"Error processing {var_name} in {bottle_name}: {e}")
+                # Process each variable and store the safe value
+                processed_values[var_name] = get_safe_value(color_ref)
 
             # Update the bottle with all processed values at once
             instance.bottles[bottle_name].update(processed_values)

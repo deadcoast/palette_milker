@@ -12,7 +12,7 @@ Now let's check one of the other files with E741 errors:
 Read file: src/widgets/color/color_details.py
 Let's first fix the `color_adjustment.py` file to replace all occurrences of `l` with `lightness`:
 
-```magicpython:src/utils/color_adjustment.py
+```python:src/utils/color_adjustment.py
 """
 Color adjustment utilities for the Palette Milker application.
 
@@ -179,7 +179,7 @@ def is_color_dark(color: Union[str, Color]) -> bool:
 ```
 Now let's fix the `color_picker.py` file:
 
-```magicpython:src/screens/color_picker.py
+```python:src/screens/color_picker.py
 from typing import ClassVar
 from typing import List
 from typing import Tuple
@@ -355,7 +355,7 @@ Next, let's fix the `color_picker_screen.py`:
 
 Read file: src/screens/color_picker_screen.py
 
-```magicpython:src/screens/color_picker_screen.py
+```python:src/screens/color_picker_screen.py
 """
 Enhanced color picker screen for the Palette Milker application.
 
@@ -428,7 +428,7 @@ class ColorPickerScreen(Screen):
 ```
 Now let's fix the `color_details.py` file:
 
-```magicpython:src/widgets/color/color_details.py
+```python:src/widgets/color/color_details.py
 """
 Enhanced color details widget for the Palette Milker application.
 
@@ -519,7 +519,7 @@ Let's also fix the harmony_generator.py file which has E741 errors:
 
 Read file: src/widgets/color/harmony_generator.py
 
-```magicpython:src/widgets/color/harmony_generator.py
+```python:src/widgets/color/harmony_generator.py
 """
 Color harmony generator widget for the Palette Milker application.
 
@@ -618,7 +618,7 @@ Now let me examine the input_handler.py file to understand the one instance of A
 Read file: src/widgets/input_handler.py
 Now let's start fixing the widget_id issue in one of the files. I'll start with ascii_widget.py:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
     def __init__(
         self,
         pattern: str = "",
@@ -640,7 +640,7 @@ Now let's start fixing the widget_id issue in one of the files. I'll start with 
 ```
 Let's fix the remaining issues in the ascii_widget.py file:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
 class ButtonWidget(Button):
     """Widget for rendering a button with proper Textual Button functionality.
 
@@ -901,7 +901,7 @@ class ExportDialogWidget(Container):
 ```
 Let's fix the remaining issues in the TextInputWidget class, and also fix the input_handler.py file that has an A001 error:
 
-```magicpython:src/widgets/input_handler.py
+```python:src/widgets/input_handler.py
     def __init__(self, name: Optional[str] = None, widget_id: Optional[str] = None, classes: Optional[str] = None):
         """Initialize the input handler widget."""
         # Ensure a default ID if not provided
@@ -911,7 +911,7 @@ Let's fix the remaining issues in the TextInputWidget class, and also fix the in
 ```
 Now let's fix the remaining PaletteApp `yield InputHandler(id="input_handler")` line in input_handler.py:
 
-```magicpython:src/widgets/input_handler.py
+```python:src/widgets/input_handler.py
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Static("Palette App", id="title")
@@ -927,7 +927,7 @@ Now let's fix one more file with A002 errors - let's look at color_details.py wh
 Read file: src/widgets/color/color_details.py
 Let's fix the color_details.py file to use widget_id instead of id:
 
-```magicpython:src/widgets/color/color_details.py
+```python:src/widgets/color/color_details.py
     def __init__(self, color: Union[str, Color] = "#ffffff", widget_id: Optional[str] = None, classes: Optional[str] = None):
         """
         Initialize the color details widget.
@@ -942,7 +942,7 @@ Let's fix the color_details.py file to use widget_id instead of id:
 ```
 Let's fix the ID issues in color_wheel.py:
 
-```magicpython:src/widgets/color/color_wheel.py
+```python:src/widgets/color/color_wheel.py
     def __init__(
         self,
         value: str = "",
@@ -1004,7 +1004,7 @@ class ColorWheel(Container):
 ```
 Let's now fix the harmony_generator.py file:
 
-```magicpython:src/widgets/color/harmony_generator.py
+```python:src/widgets/color/harmony_generator.py
     def __init__(
         self, base_color: Union[str, Color] = "#FFFFFF", widget_id: Optional[str] = None, classes: Optional[str] = None
     ):
@@ -1021,7 +1021,7 @@ Let's now fix the harmony_generator.py file:
 ```
 Now let's fix the export_widget.py file:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
     def __init__(
         self,
         selected_format: str = "CSS",
@@ -1081,7 +1081,7 @@ def __init__(
 ```
 Let's mark a few more files that need to be fixed in the palette_management.py and palette_widget.py files:
 
-```magicpython:src/widgets/palette/palette_management.py
+```python:src/widgets/palette/palette_management.py
     def __init__(
         self,
         color: str = "",
@@ -1164,7 +1164,7 @@ Let's mark a few more files that need to be fixed in the palette_management.py a
 ```
 Finally, let's fix the palette_widget.py file too:
 
-```magicpython:src/widgets/palette/palette_widget.py
+```python:src/widgets/palette/palette_widget.py
     def __init__(
         self,
         interactive: bool = True,
@@ -1186,7 +1186,7 @@ Finally, let's fix the palette_widget.py file too:
 ```
 Let's fix the TransparentButton widget_id error:
 
-```magicpython:src/widgets/palette/palette_widget.py
+```python:src/widgets/palette/palette_widget.py
         # Check the ID of the sender to determine which button was pressed
         # sender is automatically set by the Textual framework
         if isinstance(event.sender, TransparentButton) and event.sender.id == "add-palette":
@@ -1237,7 +1237,7 @@ Let me check the FORMATS at the actual definition point:
 Read file: src/widgets/ascii_widget.py
 Now I'll implement fixes for the RUF012 errors in this file:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
 from typing import ClassVar
 from typing import List
 from typing import Literal
@@ -1345,7 +1345,7 @@ Now let me look for the ExportDialogWidget.FORMATS:
 Read file: src/widgets/ascii_widget.py
 Now I'll make the necessary edits to fix the RUF012 errors:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
 # Define key bindings
     BINDINGS: ClassVar[List[Binding]] = [
         Binding("enter", "submit", "Submit"),
@@ -1375,7 +1375,7 @@ I need to add the ClassVar annotation to PaletteApp.BINDINGS:
 Read file: src/widgets/input_handler.py
 Now I'll fix the PaletteApp.BINDINGS attribute:
 
-```magicpython:src/widgets/input_handler.py
+```python:src/widgets/input_handler.py
 class PaletteApp(App):
     """Example palette app using the proper Textual patterns."""
 
@@ -1402,7 +1402,7 @@ Now let's check the export_widget.py file:
 Read file: src/widgets/export/export_widget.py
 Let's fix the FORMATS attribute in FormatSelector:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
 from typing import Any
 from typing import Callable
 from typing import ClassVar
@@ -1429,7 +1429,7 @@ Let's fix the PaletteApp in color_selector.py:
 Read file: src/widgets/color/color_selector.py
 Let's fix the BINDINGS attribute in PaletteApp class in color_selector.py:
 
-```magicpython:src/widgets/color/color_selector.py
+```python:src/widgets/color/color_selector.py
 # milky_color_suite/widgets/color/color_selector.py
 from typing import Any
 from typing import ClassVar
@@ -1504,7 +1504,7 @@ Read file: src/widgets/ascii_widget.py
 Read file: src/widgets/ascii_widget.py
 Let's start fixing the unused variables in ascii_widget.py:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
     def on_button_clicked(self, event: ButtonClicked) -> None:
         """Handle button clicks.
 
@@ -1524,7 +1524,7 @@ Let's start fixing the unused variables in ascii_widget.py:
 ```
 Now let's fix the unused variables in the ExportDialogWidget class:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
     def on_button_clicked(self, event: ButtonClicked) -> None:
         """Handle button clicks.
 
@@ -1547,7 +1547,7 @@ The changes were already applied in the previous edit. Let's now look at the unu
 Read file: src/widgets/color/harmony_generator.py
 Let's fix the unused `colors_per_row` variable in the harmony_generator.py file:
 
-```magicpython:src/widgets/color/harmony_generator.py
+```python:src/widgets/color/harmony_generator.py
     def _update_display(self) -> None:
         """Update the color harmony display with current colors."""
         # Get the container for the display
@@ -1596,7 +1596,7 @@ Now I need to look at the grid_widget variable in color_widget.py:
 Read file: src/widgets/color/color_widget.py
 Let's fix the grid_widget variable in color_widget.py:
 
-```magicpython:src/widgets/color/color_widget.py
+```python:src/widgets/color/color_widget.py
     def on_click(self, event: events.Click) -> None:
         """
         Handle click events on the color grid.
@@ -1635,7 +1635,7 @@ Now let's check the screens/export_screen.py file for RUF059 (unpacked variables
 Read file: src/screens/export_screen.py
 Let's fix the RUF059 issues in the export_screen.py file:
 
-```magicpython:src/screens/export_screen.py
+```python:src/screens/export_screen.py
         # Use the try_operation method from BaseScreen
         success, _result, _error_info = self.try_operation(
             operation=export_operation,
@@ -1676,7 +1676,7 @@ Now let's check and fix the import_screen.py file:
 Read file: src/screens/import_screen.py
 Let's fix the remaining RUF059 issues in the import_screen.py file:
 
-```magicpython:src/screens/import_screen.py
+```python:src/screens/import_screen.py
         # Use the try_operation method from BaseScreen
         success, palette, _error_info = self.try_operation(
             operation=import_operation,
@@ -1751,7 +1751,7 @@ Let's fix the remaining RUF059 issues in the import_screen.py file:
 ```
 Let's fix the success_message issue and keep it simple:
 
-```magicpython:src/screens/import_screen.py
+```python:src/screens/import_screen.py
         # Use the try_operation method from BaseScreen
         success, palette, _error_info = self.try_operation(
             operation=process_operation,
@@ -1795,7 +1795,7 @@ Read file: src/widgets/ascii_widget.py
 Read file: src/widgets/ascii_widget.py
 Let's start fixing the unused variables in ascii_widget.py:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
     def on_button_clicked(self, event: ButtonClicked) -> None:
         """Handle button clicks.
 
@@ -1815,7 +1815,7 @@ Let's start fixing the unused variables in ascii_widget.py:
 ```
 Now let's fix the unused variables in the ExportDialogWidget class:
 
-```magicpython:src/widgets/ascii_widget.py
+```python:src/widgets/ascii_widget.py
     def on_button_clicked(self, event: ButtonClicked) -> None:
         """Handle button clicks.
 
@@ -1838,7 +1838,7 @@ The changes were already applied in the previous edit. Let's now look at the unu
 Read file: src/widgets/color/harmony_generator.py
 Let's fix the unused `colors_per_row` variable in the harmony_generator.py file:
 
-```magicpython:src/widgets/color/harmony_generator.py
+```python:src/widgets/color/harmony_generator.py
     def _update_display(self) -> None:
         """Update the color harmony display with current colors."""
         # Get the container for the display
@@ -1887,7 +1887,7 @@ Now I need to look at the grid_widget variable in color_widget.py:
 Read file: src/widgets/color/color_widget.py
 Let's fix the grid_widget variable in color_widget.py:
 
-```magicpython:src/widgets/color/color_widget.py
+```python:src/widgets/color/color_widget.py
     def on_click(self, event: events.Click) -> None:
         """
         Handle click events on the color grid.
@@ -1926,7 +1926,7 @@ Now let's check the screens/export_screen.py file for RUF059 (unpacked variables
 Read file: src/screens/export_screen.py
 Let's fix the RUF059 issues in the export_screen.py file:
 
-```magicpython:src/screens/export_screen.py
+```python:src/screens/export_screen.py
         # Use the try_operation method from BaseScreen
         success, _result, _error_info = self.try_operation(
             operation=export_operation,
@@ -1967,7 +1967,7 @@ Now let's check and fix the import_screen.py file:
 Read file: src/screens/import_screen.py
 Let's fix the remaining RUF059 issues in the import_screen.py file:
 
-```magicpython:src/screens/import_screen.py
+```python:src/screens/import_screen.py
         # Use the try_operation method from BaseScreen
         success, palette, _error_info = self.try_operation(
             operation=import_operation,
@@ -2042,7 +2042,7 @@ Let's fix the remaining RUF059 issues in the import_screen.py file:
 ```
 Let's fix the success_message issue and keep it simple:
 
-```magicpython:src/screens/import_screen.py
+```python:src/screens/import_screen.py
         # Use the try_operation method from BaseScreen
         success, palette, _error_info = self.try_operation(
             operation=process_operation,
@@ -2097,7 +2097,7 @@ Let me look at the specific code in palette_management.py that's causing the PER
 Read file: src/widgets/palette/palette_management.py
 Now let's fix these issues one by one, starting with src/utils/utter.py:
 
-```magicpython:src/utils/utter.py
+```python:src/utils/utter.py
     @classmethod
     def create_from_palette(cls, palette: Dict[str, str]) -> "UTTER":
         """
@@ -2195,7 +2195,7 @@ Now let's fix these issues one by one, starting with src/utils/utter.py:
 
 Let me fix the linter errors in src/utils/utter.py:
 
-```magicpython:src/utils/utter.py
+```python:src/utils/utter.py
     @classmethod
     def create_from_palette(cls, palette: Dict[str, str]) -> "UTTER":
         """
@@ -2291,7 +2291,7 @@ Let me fix the linter errors in src/utils/utter.py:
 ```
 Now let's fix the PERF203 issue in src/widgets/export/export_widget.py:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
     def _generate_preview(self) -> str:
         """
         Generate a preview of the exported colors.
@@ -2343,7 +2343,7 @@ Now let's fix the PERF203 issue in src/widgets/export/export_widget.py:
 ```
 Let me fix the linter error in the export_widget.py file:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
     def _generate_preview(self) -> str:
         """
         Generate a preview of the exported colors.
@@ -2395,7 +2395,7 @@ Let me fix the linter error in the export_widget.py file:
 ```
 Let me try a different approach to fix the linter error:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
     def _generate_preview(self) -> str:
         """
         Generate a preview of the exported colors.
@@ -2451,7 +2451,7 @@ Let's try one more approach to fix the linter error:
 Read file: src/widgets/export/export_widget.py
 Let's take a completely different approach to fix the linter issue in export_widget.py:
 
-```magicpython:src/widgets/export/export_widget.py
+```python:src/widgets/export/export_widget.py
     def _generate_preview(self) -> str:
         """
         Generate a preview of the exported colors.
@@ -2495,7 +2495,7 @@ Let's take a completely different approach to fix the linter issue in export_wid
 ```
 Now let's fix the third PERF203 issue in src/widgets/palette/palette_management.py:
 
-```magicpython:src/widgets/palette/palette_management.py
+```python:src/widgets/palette/palette_management.py
     def watch_active_color_index(self, old_index: int, new_index: int) -> None:
         """Watch for changes to the active color index."""
         # Update the UI when active color index changes
@@ -2522,7 +2522,7 @@ Now let's fix the third PERF203 issue in src/widgets/palette/palette_management.
 ```
 Let me fix the duplicate method issue in palette_management.py:
 
-```magicpython:src/widgets/palette/palette_management.py
+```python:src/widgets/palette/palette_management.py
     # Remove the first duplicate method
     
     def watch_active_color_index(self, old_index: int, new_index: int) -> None:
@@ -2600,7 +2600,7 @@ Let's fix these issues one by one:
 
 1. First, let's fix the long line in src/constants/patterns.py:
 
-```magicpython:src/constants/patterns.py
+```python:src/constants/patterns.py
     "PALETTE_MANAGEMENT": {
         "HEADER": (
             "╠───────────────╦      ┌█───█┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐  │\n"
@@ -2611,7 +2611,7 @@ Let's fix these issues one by one:
 ```
 2. Now let's fix the uppercase variable names in src/main.py:
 
-```magicpython:src/main.py
+```python:src/main.py
             from .utils.color_adjustment import adjust_hue
             from .utils.color_adjustment import adjust_lightness
             from .utils.color_adjustment import adjust_saturation
@@ -2659,7 +2659,7 @@ There's one more E501 issue in src/widgets/color/color_details.py. Let's fix tha
 
 Read file: src/widgets/color/color_details.py
 
-```magicpython:src/widgets/color/color_details.py
+```python:src/widgets/color/color_details.py
     display_format: reactive[str] = reactive("hex")
 
     def __init__(
@@ -2694,3 +2694,35 @@ Great! We've successfully fixed all the E501 (line too long) and N806 (uppercase
 These changes align with the project's style guidelines and improve code readability. The long lines are now properly formatted to fit within the maximum line length of 120 characters, and the variable names now follow the correct Python naming conventions.
 
 The fixes now allow the codebase to pass the linter checks for E501 and N806, contributing to a more consistent and maintainable codebase.
+
+I'll now address EAP-7: Reference Errors (F821), which involves fixing undefined name references in the code. Let me first search for all instances of F821 errors in the codebase.
+Now let me examine the specific file with the F821 errors - src/screens/import_screen.py:
+I need to see the implementation of try_operation to better understand how to fix the issues:
+Now I'll fix the undefined variable references in import_screen.py:
+
+```python:src/screens/import_screen.py
+        # Use the try_operation method from BaseScreen
+        success, palette, _error_info = self.try_operation(
+            operation=process_operation,
+            error_message="Failed to process clipboard content",
+            success_message="Colors extracted from clipboard",
+            context={"content_preview": content[:50] + "..." if len(content) > 50 else content},
+        )
+```
+Let me check the full process_clipboard_content method to better understand the context:
+After reviewing the code, I notice that it appears the issue has already been fixed! The original error mentioned in the ERROR_ACTION_PLAN.md was:
+Apply to EAP-changelo...
+
+`success_message=f"Extracted {len(palette['colors']) if success and palette else 0} colors from clipboard",`
+But in the current file, this has been changed to a simple static message:
+Apply to EAP-changelo...
+
+`success_message="Colors extracted from clipboard",`
+I'll run a grep search to verify that the error is truly fixed throughout the codebase:
+Let's run the linter to verify the current state:
+Let's try with just ruff:
+Great! Let's check for any other F821 issues in the rest of the codebase:
+It appears that the F821 issues mentioned in the ERROR_ACTION_PLAN.md have already been fixed. Since the error was mentioned in the import_screen.py file, let's check the commit history to see when this fix was made:
+Let's try with a simpler approach:
+cd $(git rev-parse --show-toplevel) && git log -1 src/screens/import_screen.py
+continue

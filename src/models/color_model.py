@@ -8,10 +8,12 @@ color data throughout the application.
 import re
 from enum import Enum
 from enum import auto
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Union
+from typing import cast
 
 # This requires the 'colour' package: pip install colour
 from colour import Color as ColourColor
@@ -42,7 +44,7 @@ class Color:
     # Define type for _color attribute
     _color: ColourColor
 
-    def __init__(self, value: Union[str, Tuple, List, Dict, "Color"]) -> None:
+    def __init__(self, value: Union[str, Tuple[Any, ...], List[Any], Dict[str, Any], "Color"]) -> None:
         """
         Initialize a Color instance.
 
@@ -76,25 +78,25 @@ class Color:
         Raises:
             ValueError: If the color string is invalid
         """
-        # Check if RGB format: rgb(255, 255, 255)
+        # Check RGB format: rgb(255, 255, 255)
         rgb_match = re.match(r"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)", value)
         if rgb_match:
             r, g, b = map(int, rgb_match.groups())
             return ColourColor(rgb=(r / 255, g / 255, b / 255))
 
-        # Check if HSL format: hsl(360, 100%, 100%)
+        # Check HSL format: hsl(360, 100%, 100%)
         hsl_match = re.match(r"hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)", value)
         if hsl_match:
             h, s, lightness = map(int, hsl_match.groups())
             return ColourColor(hsl=(h / 360, s / 100, lightness / 100))
 
-        # Assume hex format or named color
+        # Default: try as hex or named color
         try:
             return ColourColor(value)
         except ValueError as e:
             raise ValueError(f"Invalid color string: {value}") from e
 
-    def _from_rgb_tuple(self, value: Union[Tuple, List]) -> ColourColor:
+    def _from_rgb_tuple(self, value: Union[Tuple[Union[int, float], ...], List[Union[int, float]]]) -> ColourColor:
         """
         Create a Color instance from an RGB tuple.
 
@@ -122,7 +124,7 @@ class Color:
         except ValueError as e:
             raise ValueError(f"Invalid RGB values: {value}") from e
 
-    def _from_dict(self, value: Dict) -> ColourColor:
+    def _from_dict(self, value: Dict[str, Union[int, float]]) -> ColourColor:
         """
         Create a Color instance from a dictionary.
 
@@ -156,7 +158,16 @@ class Color:
         else:
             raise ValueError(f"Invalid color dictionary: {value}")
 
-    def _convert_to_rgb(self, value):
+    def _convert_to_rgb(self, value: Dict[str, Union[int, float]]) -> ColourColor:
+        """
+        Convert HSV dictionary to RGB ColourColor.
+
+        Args:
+            value: Dictionary with HSV components (e.g., {"h": 360, "s": 100, "v": 100})
+
+        Returns:
+            A ColourColor instance in RGB format
+        """
         # HSV format - convert to RGB first
         h = value["h"] / 360 if isinstance(value["h"], int) and value["h"] > 1 else value["h"]
         s = value["s"] / 100 if isinstance(value["s"], int) and value["s"] > 1 else value["s"]
@@ -192,7 +203,7 @@ class Color:
         Returns:
             Hex color string (e.g., "#FFFFFF")
         """
-        return self._color.hex_l
+        return cast(str, self._color.hex_l)
 
     @property
     def rgb(self) -> Tuple[int, int, int]:
@@ -213,7 +224,8 @@ class Color:
         Returns:
             RGB tuple with values in range 0.0-1.0
         """
-        return self._color.rgb
+        r, g, b = self._color.rgb
+        return (r, g, b)
 
     @property
     def hsl(self) -> Tuple[int, int, int]:
@@ -234,7 +246,8 @@ class Color:
         Returns:
             HSL tuple with values in range 0.0-1.0
         """
-        return self._color.hsl
+        h, s, lightness = self._color.hsl
+        return (h, s, lightness)
 
     @property
     def hsv(self) -> Tuple[int, int, int]:
@@ -300,7 +313,7 @@ class Color:
 
         return (c_int, m_int, y_int, k_int)
 
-    def get_format(self, format_type: ColorFormat) -> Union[str, Tuple]:
+    def get_format(self, format_type: ColorFormat) -> Union[str, Tuple[int, ...], Tuple[float, ...]]:
         """
         Get the color in the specified format.
 
@@ -468,7 +481,7 @@ class Color:
 
     def __str__(self) -> str:
         """String representation of the color."""
-        return self.hex
+        return str(self.hex)
 
     def __repr__(self) -> str:
         """Detailed string representation of the color."""

@@ -5,6 +5,7 @@ This screen provides options for exporting palettes in various formats.
 """
 
 import os
+from typing import Any
 from typing import ClassVar
 from typing import Dict
 from typing import List
@@ -148,7 +149,7 @@ class ExportScreen(BaseScreen):
             yield Static("Select a format and customize export options below.", id="export-instructions")
 
             # Main export panel
-            yield ExportPanel(id="export-panel")
+            yield ExportPanel(widget_id="export-panel")
 
             with Container(id="export-buttons"):
                 yield Button("Export to File", id="export-file", variant="primary")
@@ -162,17 +163,20 @@ class ExportScreen(BaseScreen):
         # Try to get current palette information from the app
         try:
             # Access the app's palette information
-            from typing import Any
-            from typing import cast
-
-            app = cast(Any, self.app)  # Cast to Any to bypass type checking
+            app = self.app
             if hasattr(app, "current_palette") and hasattr(app, "palettes"):
                 self._extracted_from_on_mount_10(app)
         except Exception as e:
             self.log.error(f"Error getting palette information: {e}")
 
     # TODO Rename this here and in `on_mount`
-    def _extracted_from_on_mount_10(self, app):
+    def _extracted_from_on_mount_10(self, app: Any) -> None:
+        """
+        Update export panel with palette information from app.
+
+        Args:
+            app: The application instance containing palette data
+        """
         palette_name = app.current_palette
         palette_colors = app.palettes.get(palette_name, ["#FFFFFF"] * 8)
 
@@ -194,8 +198,13 @@ class ExportScreen(BaseScreen):
         elif event.button.id == "back-button":
             self.app.switch_screen("main")
 
-    def on_export_panel_export_requested(self, message) -> None:
-        """Handle export request from the ExportPanel."""
+    def on_export_panel_export_requested(self, message: ExportPanel.ExportRequested) -> None:
+        """
+        Handle export request from the ExportPanel.
+
+        Args:
+            message: Message containing export request details
+        """
         # Update local variables
         self.export_format = message.format_name
         self.palette_name = message.palette_name
@@ -258,7 +267,13 @@ class ExportScreen(BaseScreen):
     def _perform_export(self, colors: List[str], palette_name: str, format_name: str, file_path: str) -> None:
         """Perform the actual export operation."""
 
-        def export_operation():
+        def export_operation() -> str:
+            """
+            Export the palette to a file.
+
+            Returns:
+                Path to the exported file
+            """
             # Convert color strings to Color objects
             color_objects = [Color(color) for color in colors]
 
@@ -284,7 +299,13 @@ class ExportScreen(BaseScreen):
     def action_copy_to_clipboard(self) -> None:
         """Copy the export content to clipboard."""
 
-        def copy_operation():
+        def copy_operation() -> str:
+            """
+            Get the export content to copy to clipboard.
+
+            Returns:
+                Content to be copied to clipboard
+            """
             # Get the export panel
             export_panel = self.query_one(ExportPanel)
 

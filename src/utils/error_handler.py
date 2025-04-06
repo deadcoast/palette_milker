@@ -17,8 +17,11 @@ from typing import Union
 from typing import cast
 
 from textual.app import App
+from textual.app import ComposeResult
 from textual.containers import Container
 from textual.message import Message
+from textual.widgets import Button
+from textual.widgets import Static
 
 
 # Configure the logger
@@ -259,7 +262,7 @@ class ErrorDisplay(Container):
     }
     """
 
-    def __init__(self, error_info: Optional[ErrorInfo] = None, **kwargs):
+    def __init__(self, error_info: Optional[ErrorInfo] = None, **kwargs: Any) -> None:
         """Initialize the error display.
 
         Args:
@@ -269,11 +272,8 @@ class ErrorDisplay(Container):
         super().__init__(**kwargs)
         self.error_info = error_info
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         """Compose the error display widget."""
-        from textual.widgets import Button
-        from textual.widgets import Static
-
         # Error title based on severity
         yield Static("Error", id="error-title")
 
@@ -301,8 +301,6 @@ class ErrorDisplay(Container):
         Args:
             error_info: The error information to display
         """
-        from textual.widgets import Static
-
         # Store the error info
         self.error_info = error_info
 
@@ -340,8 +338,12 @@ class ErrorDisplay(Container):
         self.display = True
         self.add_class("visible")
 
-    def on_button_pressed(self, event):
-        """Handle button press events."""
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events.
+
+        Args:
+            event: The button press event
+        """
         if event.button.id == "dismiss-error":
             self.hide_error()
 

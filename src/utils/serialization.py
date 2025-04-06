@@ -121,7 +121,16 @@ def load_palette_collection(file_path: Union[str, Path]) -> Tuple[bool, Union[Li
 
 
 # TODO Rename this here and in `load_palette_collection`
-def _extracted_from_load_palette_collection_23(file_path):
+def _extracted_from_load_palette_collection_23(file_path: Path) -> Tuple[bool, Union[List[Dict[str, Any]], str]]:
+    """
+    Extract the palette collection from a file.
+
+    Args:
+        file_path: Path to the file to read from
+
+    Returns:
+        Tuple containing (success, data or error message)
+    """
     # Read from file
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -248,7 +257,9 @@ def _import_from_css_like(file_path: Path) -> Tuple[bool, Union[Dict[str, Any], 
             r, g, b, a = match.groups()
             color = Color({"r": int(r), "g": int(g), "b": int(b)})
             # Convert alpha to hex format
-            alpha_hex = hex(int(float(a) * 255))[2:].zfill(2)
+            # Explicitly convert alpha to float first to fix type issue
+            alpha_float = float(a)
+            alpha_hex = hex(int(alpha_float * 255))[2:].zfill(2)
             colors.append(f"{color.hex}{alpha_hex}")
 
         # Remove duplicates
@@ -367,52 +378,64 @@ def _parse_ase_content(content: bytes) -> List[str]:
     """Parse ASE file content and extract colors."""
     import struct
 
-    colors = []
+    colors: List[str] = []
 
     # Skip header (signature + version): 8 bytes
     pos = 8
 
-    # Get number of blocks
-    block_count = struct.unpack(">I", content[pos : pos + 4])[0]
-    pos += 4
-
-    # Process each block
-    for _ in range(block_count):
-        # Get block type
-        block_type = struct.unpack(">H", content[pos : pos + 2])[0]
-        pos += 2
-
-        # Get block length
-        block_length = struct.unpack(">I", content[pos : pos + 4])[0]
+    try:
+        # Get number of blocks
+        block_count_bytes = content[pos : pos + 4]
+        block_count = struct.unpack(">I", block_count_bytes)[0]
         pos += 4
 
-        # Process color block (type 1)
-        if block_type == 1:
-            # Skip color name
-            name_length = int(struct.unpack(">H", content[pos : pos + 2])[0]) * 2  # UTF-16 chars
-            pos += 2 + name_length
+        # Process each block
+        for _ in range(block_count):
+            # Get block type
+            block_type_bytes = content[pos : pos + 2]
+            block_type = struct.unpack(">H", block_type_bytes)[0]
+            pos += 2
 
-            # Get color model
-            color_model = content[pos : pos + 4].decode("ascii").strip()
+            # Get block length
+            block_length_bytes = content[pos : pos + 4]
+            block_length = struct.unpack(">I", block_length_bytes)[0]
             pos += 4
 
-            if color_model == "RGB":
-                # Get RGB values
-                r, g, b = struct.unpack(">fff", content[pos : pos + 12])
-                pos += 12
+            # Process color block (type 1)
+            if block_type == 1:
+                # Skip color name
+                name_length_bytes = content[pos : pos + 2]
+                # Manually convert to int to avoid mypy confusion
+                name_length_value = struct.unpack(">H", name_length_bytes)[0]
+                # Force to int and multiply by 2 for UTF-16 chars
+                name_length = 2 * int(str(name_length_value))
+                pos += 2 + name_length
 
-                # Convert to hex
-                r = int(r * 255)
-                g = int(g * 255)
-                b = int(b * 255)
-                hex_color = f"#{r:02x}{g:02x}{b:02x}"
-                colors.append(hex_color)
+                # Get color model
+                color_model = content[pos : pos + 4].decode("ascii").strip()
+                pos += 4
+
+                if color_model == "RGB":
+                    # Get RGB values
+                    rgb_bytes = content[pos : pos + 12]
+                    r_f, g_f, b_f = struct.unpack(">fff", rgb_bytes)
+                    pos += 12
+
+                    # Convert to hex
+                    r = int(r_f * 255)
+                    g = int(g_f * 255)
+                    b = int(b_f * 255)
+                    hex_color = f"#{r:02x}{g:02x}{b:02x}"
+                    colors.append(hex_color)
+                else:
+                    # Skip unknown color model
+                    pos += block_length - 6 - name_length
             else:
-                # Skip unknown color model
-                pos += block_length - 6 - name_length
-        else:
-            # Skip other block types
-            pos += block_length
+                # Skip other block types
+                pos += block_length
+    except Exception as e:
+        # Log error and continue
+        print(f"Error parsing ASE content: {e}")
 
     return colors
 

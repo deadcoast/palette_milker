@@ -17,7 +17,7 @@
 
 ```xml
 <task>
-    <start="EAP-7" priority="high">Initiate Corrections, Utilize Textuals verbose platform and its best practises.</start>
+    <start="EAP-8" priority="high">Initiate Corrections, Utilize Textuals verbose platform and its best practises.</start>
         <ref type="context" source="Textual-Moc.md">If you need documentation for context, use <Textual-Moc.md>. It will lead you to more context and examples in the <Textual-Docs> directory.</ref>
 </task>
 ```

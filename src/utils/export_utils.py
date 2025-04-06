@@ -8,6 +8,7 @@ in various formats, implementing the exact export styles specified.
 import json
 import os
 import struct
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -18,16 +19,16 @@ from ..models.color_model import Color
 from .utter import UTTER
 
 
-def export_palette_to_utter(palette_data):
+def export_palette_to_utter(palette_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Export a palette to the UTTER format.
 
     Args:
-        palette_data (dict): Dictionary containing palette colors
+        palette_data: Dictionary containing palette colors
             e.g. {'colors': ['#FF5500', '#333333', ...], 'name': 'My Palette'}
 
     Returns:
-        dict: UTTER export data containing the formatted output
+        UTTER export data containing the formatted output
     """
     # Map palette colors to expected UTTER input format
     colors = palette_data.get("colors", [])
@@ -225,9 +226,12 @@ def export_json(colors: List[Color], palette_name: str) -> str:
     Returns:
         JSON content as a string
     """
-    data = {"name": palette_name, "colors": [color.hex for color in colors]}
+    color_hex_list: List[str] = [color.hex for color in colors]
+    data: Dict[str, Any] = {"name": palette_name, "colors": color_hex_list}
 
-    return json.dumps(data, indent=2)
+    # Force mypy to recognize this as a str
+    result: str = json.dumps(data, indent=2)
+    return result
 
 
 def export_txt(colors: List[Color], palette_name: str) -> str:
@@ -387,12 +391,24 @@ def export_aco(colors: List[Color], palette_name: str) -> bytes:
 
         content_v2 += color_space + r_v2 + g_v2 + b_v2 + zero + name_length + name_utf16 + null
 
-    # Combine version 1 and 2 content
-    return content_v1 + content_v2
+    # Make sure the result is explicitly treated as bytes type
+    result: bytes = content_v1 + content_v2
+    # Return the binary data
+    return result  # type: ignore
 
 
 # TODO Rename this here and in `export_aco`
-def _extracted_from_export_aco_16(arg0, colors):
+def _extracted_from_export_aco_16(arg0: int, colors: List[Color]) -> bytes:
+    """
+    Helper function to create ACO file header.
+
+    Args:
+        arg0: ACO version number
+        colors: List of colors to include in the file
+
+    Returns:
+        ACO header as bytes
+    """
     # ACO file format version 2
     # Reference: http://www.nomodes.com/aco.html
 

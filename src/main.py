@@ -24,6 +24,7 @@ from .models.palette_model import PaletteAdded
 from .models.palette_model import PaletteColorUpdated
 from .models.palette_model import PaletteRemoved
 from .models.palette_model import PaletteUpdated
+from .screens.rename_screen import RenameScreen
 from .utils.error_handler import handle_error
 from .utils.error_handler import logger
 from .widgets.color.color_wheel import ColorWheel
@@ -92,7 +93,7 @@ class PaletteMilkerApp(App):
         Binding("space", "toggle_color_details", "Show details"),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the application."""
         super().__init__()
 
@@ -105,7 +106,7 @@ class PaletteMilkerApp(App):
         # Create application state manager
         self.app_state = ApplicationState(self)
 
-    def _setup_error_handling(self):
+    def _setup_error_handling(self) -> None:
         """Set up centralized error handling."""
         # App logger is already initialized in __init__
         pass
@@ -142,7 +143,7 @@ class PaletteMilkerApp(App):
             # Main content area
             with Container(id="main-content"):
                 # Color wheel - use id as that's what ColorWheel expects
-                yield ColorWheel(title="COLOR WHEEL", id="color-wheel")
+                yield ColorWheel(title="COLOR WHEEL", widget_id="color-wheel")
 
                 # Palette management
                 active_palette = self.app_state.get_active_palette()
@@ -159,11 +160,11 @@ class PaletteMilkerApp(App):
                         palette_name=active_palette.name,
                         colors=active_palette.hex_colors,
                         active_color_index=active_color_index,
-                        id="palette-management",
+                        widget_id="palette-management",
                     )
                 else:
                     # Fallback if no active palette
-                    yield PaletteManagement(id="palette-management")
+                    yield PaletteManagement(widget_id="palette-management")
 
     def on_mount(self) -> None:
         """Handle application mount event."""
@@ -404,15 +405,16 @@ class PaletteMilkerApp(App):
 
     def action_rename_palette(self) -> None:
         """Rename the current palette."""
-        if not self.app_state.get_active_palette():
+        active_palette = self.app_state.get_active_palette()
+        if not active_palette:
             self.notify("No active palette", severity="warning")
             return
 
         try:
-            from .screens.rename_screen import RenameScreen
-
             # Create a rename screen with the current palette name
-            rename_screen = RenameScreen(self.app_state.get_active_palette().name)
+            # Add null checking to avoid accessing name on a potentially None object
+            palette_name = active_palette.name if active_palette else "Untitled"
+            rename_screen = RenameScreen(palette_name)
             self.push_screen(rename_screen)
 
         except Exception as e:
@@ -443,7 +445,7 @@ class PaletteMilkerApp(App):
             )
 
     # TODO Rename this here and in `action_copy_palette`
-    def _extracted_from_action_copy_palette_(self, active_palette):
+    def _extracted_from_action_copy_palette_(self, active_palette: Any) -> None:
         # Create a new name with "Copy" suffix
         palette_name = active_palette.name if hasattr(active_palette, "name") else "Palette"
         new_name = f"{palette_name} (Copy)"
@@ -452,7 +454,9 @@ class PaletteMilkerApp(App):
         self._extracted_from__extracted_from_action_copy_palette__13(new_name, palette_colors, "Created copy: ")
 
     # TODO Rename this here and in `action_new_palette` and `_extracted_from_action_copy_palette_`
-    def _extracted_from__extracted_from_action_copy_palette__13(self, new_name, arg1, arg2):
+    def _extracted_from__extracted_from_action_copy_palette__13(
+        self, new_name: str, arg1: List[str], arg2: str
+    ) -> None:
         from typing import Any
         from typing import cast
 
@@ -624,7 +628,7 @@ class PaletteMilkerApp(App):
             # Log if the action doesn't exist
             self.app_logger.warning(f"No action method found for: {action_name}")
 
-    def on_palette_imported_message(self, message):
+    def on_palette_imported_message(self, message: Any) -> None:
         """Handle a palette imported message."""
         try:
             # Extract the palette data
@@ -654,7 +658,7 @@ class PaletteMilkerApp(App):
                 context={"action": "import_palette"},
             )
 
-    def on_rename_submitted(self, message):
+    def on_rename_submitted(self, message: Any) -> None:
         """Handle rename submission."""
         active_palette = self.app_state.get_active_palette()
         if not active_palette:
@@ -680,7 +684,7 @@ class PaletteMilkerApp(App):
                 context={"action": "rename_palette"},
             )
 
-    def on_palette_management_color_selected(self, message):
+    def on_palette_management_color_selected(self, message: Any) -> None:
         """Handle color selection from the palette management widget."""
         try:
             # Update the active color index in the model
@@ -731,7 +735,7 @@ class PaletteMilkerApp(App):
         """
         self._update_palette_ui()
 
-    def _update_palette_ui(self):
+    def _update_palette_ui(self) -> None:
         """Update the palette management UI."""
         try:
             # Get the management widget
@@ -772,7 +776,7 @@ class PaletteMilkerApp(App):
                 context={"action": "_update_palette_ui"},
             )
 
-    def on_color_picker_screen_color_selected_message(self, message) -> None:
+    def on_color_picker_screen_color_selected_message(self, message: Any) -> None:
         """Handle color selection from the enhanced color picker screen.
 
         Args:

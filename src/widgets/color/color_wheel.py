@@ -231,8 +231,8 @@ class ColorWheel(Container):
     def on_click(self, event: events.Click) -> None:
         """Handle clicks on color swatches."""
         if isinstance(event.widget, ColorSwatch):
-            # Cast to ColorSwatch to ensure proper type checking
-            swatch = cast(ColorSwatch, event.widget)
+            # Get the color swatch
+            swatch = event.widget
 
             # Update the selected color
             self.selected_color = swatch.color

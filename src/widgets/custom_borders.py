@@ -29,7 +29,7 @@ class BorderBox(Static):
 
     def __init__(
         self,
-        *children,
+        *children: Widget,
         title: str = "",
         border_style: str = "single",
         widget_id: Optional[str] = None,
@@ -213,7 +213,7 @@ class DoubleHeaderBox(Container):
     }
     """
 
-    def __init__(self, title: str, *children, widget_id: Optional[str] = None, classes: Optional[str] = None):
+    def __init__(self, title: str, *children: Widget, widget_id: Optional[str] = None, classes: Optional[str] = None):
         """
         Initialize a box with a double-line header.
 

@@ -68,7 +68,7 @@ class ColorSelector(Static):
             # ColorSwatch might not be available in this context
             pass
 
-    def _update_preview(self, value: str):
+    def _update_preview(self, value: str) -> None:
         """Update the preview box color."""
         preview = self.query_one("#color-preview", Static)
         try:
@@ -79,7 +79,7 @@ class ColorSelector(Static):
             preview.renderable = Text("Invalid Color")
 
     # TODO Rename this here and in `_update_preview`
-    def _extracted_from__update_preview_5(self, value, preview):
+    def _extracted_from__update_preview_5(self, value: str, preview: Static) -> None:
         color = Color.parse(value)
         preview.styles.background = color
         # Set foreground for contrast - calculate luminance from RGB values
@@ -269,22 +269,39 @@ class ColorPicker(Widget):
     class ColorSelected(Message):
         """Message sent when a color is selected by the user."""
 
-        def __init__(self, sender: Widget, color_hex: str):
-            super().__init__(sender)
+        def __init__(self, sender: Widget, color_hex: str) -> None:
+            """
+            Initialize the message with sender and color_hex.
+
+            Args:
+                sender: The widget that sent this message
+                color_hex: The hex code of the selected color
+            """
+            super().__init__()
+            self.sender = sender
             self.color_hex = color_hex
 
     # For widget-specific functionality not covered by global bindings
     class PaletteActionRequested(Message):
         """Message sent for palette-specific actions that need parent handling."""
 
-        def __init__(self, sender: Widget, action: str, data: Optional[dict] = None):
-            super().__init__(sender)
+        def __init__(self, sender: Widget, action: str, data: Optional[dict] = None) -> None:
+            """
+            Initialize the message with sender, action and data.
+
+            Args:
+                sender: The widget that sent this message
+                action: The action being requested
+                data: Optional data associated with the action
+            """
+            super().__init__()
+            self.sender = sender
             self.action = action
             self.data = data or {}
 
-    def __init__(self, name: Optional[str] = None, id: Optional[str] = None, classes: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None, widget_id: Optional[str] = None, classes: Optional[str] = None):
         """Initialize the color picker widget."""
-        super().__init__(name=name, id=id, classes=classes)
+        super().__init__(name=name, id=widget_id, classes=classes)
 
     def on_click(self, event: Click) -> None:
         """Handle click events for color selection.
@@ -331,7 +348,7 @@ class PaletteApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Static("Palette App", id="title")
-        yield ColorPicker(id="color_picker")
+        yield ColorPicker(widget_id="color_picker")
         # Add other widgets like palette display, color grid, etc.
 
     # Action handlers for key bindings

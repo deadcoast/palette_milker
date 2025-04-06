@@ -11,6 +11,8 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from rich.console import RenderableType
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.color import Color
@@ -20,8 +22,56 @@ from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Button
-from textual.widgets import Slider
 from textual.widgets import Static
+
+
+# Since Slider may not be available in this version of Textual, we'll use Static as a base
+class Slider(Static):
+    """Simple custom slider implementation."""
+
+    value: reactive[int] = reactive(0)
+    min: reactive[int] = reactive(0)
+    max: reactive[int] = reactive(100)
+    step: reactive[int] = reactive(1)
+
+    def __init__(
+        self,
+        value: int = 0,
+        min_value: int = 0,
+        max_value: int = 100,
+        step: int = 1,
+        name: Optional[str] = None,
+        widget_id: Optional[str] = None,
+        classes: Optional[str] = None,
+    ) -> None:
+        """Initialize the slider."""
+        super().__init__(name=name, id=widget_id, classes=classes)
+        self.value = value
+        self.min = min_value
+        self.max = max_value
+        self.step = step
+
+    def render(self) -> RenderableType:
+        """Render the slider."""
+        # Simple text-based rendering
+        width = 20  # Width in characters
+        range_size = self.max - self.min
+        if range_size <= 0:
+            position = 0
+        else:
+            position = int(((self.value - self.min) / range_size) * width)
+
+        bar = "▓" * position + "░" * (width - position)
+        return Text(f"[{bar}] {self.value}")
+
+    class Changed(Message):
+        """Message sent when slider value changes."""
+
+        def __init__(self, slider: "Slider", value: int) -> None:
+            """Initialize with slider and value."""
+            super().__init__()
+            self.slider = slider
+            self.value = value
 
 
 class ColorValueChanged(Message):
@@ -176,34 +226,38 @@ class ColorDetails(Container):
             with Container(classes="slider-row"):
                 yield Static("R", classes="slider-label")
                 r, g, b = self.color.rgb
-                yield Slider(value=r, min=0, max=255, step=1, id="red-slider", classes="slider")
+                yield Slider(value=r, min_value=0, max_value=255, step=1, widget_id="red-slider", classes="slider")
                 yield Static(f"{r}", id="red-value", classes="slider-value")
 
             with Container(classes="slider-row"):
                 yield Static("G", classes="slider-label")
-                yield Slider(value=g, min=0, max=255, step=1, id="green-slider", classes="slider")
+                yield Slider(value=g, min_value=0, max_value=255, step=1, widget_id="green-slider", classes="slider")
                 yield Static(f"{g}", id="green-value", classes="slider-value")
 
             with Container(classes="slider-row"):
                 yield Static("B", classes="slider-label")
-                yield Slider(value=b, min=0, max=255, step=1, id="blue-slider", classes="slider")
+                yield Slider(value=b, min_value=0, max_value=255, step=1, widget_id="blue-slider", classes="slider")
                 yield Static(f"{b}", id="blue-value", classes="slider-value")
 
             # HSL sliders (approximate values)
             h, s, lightness = self._get_hsl_values()
             with Container(classes="slider-row"):
                 yield Static("H", classes="slider-label")
-                yield Slider(value=h, min=0, max=360, step=1, id="hue-slider", classes="slider")
+                yield Slider(value=h, min_value=0, max_value=360, step=1, widget_id="hue-slider", classes="slider")
                 yield Static(f"{h}°", id="hue-value", classes="slider-value")
 
             with Container(classes="slider-row"):
                 yield Static("S", classes="slider-label")
-                yield Slider(value=s, min=0, max=100, step=1, id="saturation-slider", classes="slider")
+                yield Slider(
+                    value=s, min_value=0, max_value=100, step=1, widget_id="saturation-slider", classes="slider"
+                )
                 yield Static(f"{s}%", id="saturation-value", classes="slider-value")
 
             with Container(classes="slider-row"):
                 yield Static("L", classes="slider-label")
-                yield Slider(value=lightness, min=0, max=100, step=1, id="lightness-slider", classes="slider")
+                yield Slider(
+                    value=lightness, min_value=0, max_value=100, step=1, widget_id="lightness-slider", classes="slider"
+                )
                 yield Static(f"{lightness}%", id="lightness-value", classes="slider-value")
 
         # Buttons for common operations
@@ -257,22 +311,14 @@ class ColorDetails(Container):
 
         # Update RGB slider values
         r, g, b = self.color.rgb
-        self.query_one("#red-slider", Slider).value = r
-        self.query_one("#red-value", Static).update(f"{r}")
-        self.query_one("#green-slider", Slider).value = g
-        self.query_one("#green-value", Static).update(f"{g}")
-        self.query_one("#blue-slider", Slider).value = b
-        self.query_one("#blue-value", Static).update(f"{b}")
-
+        self._extracted_from__update_display_26("#red-slider", r, "#red-value")
+        self._extracted_from__update_display_26("#green-slider", g, "#green-value")
+        self._extracted_from__update_display_26("#blue-slider", b, "#blue-value")
         # Update HSL slider values
         h, s, lightness = self._get_hsl_values()
-        self.query_one("#hue-slider", Slider).value = h
-        self.query_one("#hue-value", Static).update(f"{h}°")
-        self.query_one("#saturation-slider", Slider).value = s
-        self.query_one("#saturation-value", Static).update(f"{s}%")
-        self.query_one("#lightness-slider", Slider).value = lightness
-        self.query_one("#lightness-value", Static).update(f"{lightness}%")
-
+        self._extracted_from__update_display_38("#hue-slider", h, "#hue-value", "°")
+        self._extracted_from__update_display_38("#saturation-slider", s, "#saturation-value", "%")
+        self._extracted_from__update_display_38("#lightness-slider", lightness, "#lightness-value", "%")
         # Update harmony colors
         harmony_colors = self._get_harmonious_colors()
         for i, harmony_color in enumerate(harmony_colors):
@@ -283,6 +329,22 @@ class ColorDetails(Container):
             is_dark = self._is_color_dark(harmony_color)
             harmony_swatch.styles.color = "white" if is_dark else "black"
             harmony_swatch.update(harmony_color.hex)
+
+    # TODO Rename this here and in `_update_display`
+    def _extracted_from__update_display_38(self, arg0: str, arg1: int, arg2: str, arg3: str) -> None:
+        """Update a slider and its corresponding value display."""
+        # Get the slider directly - no need to cast when we've already specified the type in query_one
+        hue_slider = self.query_one(arg0, Slider)
+        hue_slider.value = arg1
+        self.query_one(arg2, Static).update(f"{arg1}{arg3}")
+
+    # TODO Rename this here and in `_update_display`
+    def _extracted_from__update_display_26(self, arg0: str, arg1: int, arg2: str) -> None:
+        """Update a slider and its corresponding value display."""
+        # Get the slider directly - no need to cast when we've already specified the type in query_one
+        red_slider = self.query_one(arg0, Slider)
+        red_slider.value = arg1
+        self.query_one(arg2, Static).update(f"{arg1}")
 
     def _get_rgb_string(self) -> str:
         """Get RGB representation of the current color."""
@@ -332,7 +394,7 @@ class ColorDetails(Container):
             r_byte = round(r * 255)
             g_byte = round(g * 255)
             b_byte = round(b * 255)
-            return Color.from_rgb(r_byte, g_byte, b_byte)
+            return Color(r_byte, g_byte, b_byte)
 
         return [
             hsl_to_color(complementary_h, s, lightness),
@@ -368,7 +430,7 @@ class ColorDetails(Container):
                 self.query_one("#blue-value", Static).update(f"{b}")
 
             # Update the color
-            self.color = Color.from_rgb(r, g, b)
+            self.color = Color(r, g, b)
 
         elif slider_id in ("hue-slider", "saturation-slider", "lightness-slider"):
             self._extracted_from_on_slider_changed_25(slider_id, value)
@@ -376,7 +438,7 @@ class ColorDetails(Container):
         self.post_message(ColorValueChanged(self.color))
 
     # TODO Rename this here and in `on_slider_changed`
-    def _extracted_from_on_slider_changed_25(self, slider_id, value):
+    def _extracted_from_on_slider_changed_25(self, slider_id: str, value: int) -> None:
         # Update HSL values
         h, s, lightness = self._get_hsl_values()
 
@@ -400,7 +462,7 @@ class ColorDetails(Container):
         r_byte = round(r * 255)
         g_byte = round(g * 255)
         b_byte = round(b * 255)
-        self.color = Color.from_rgb(r_byte, g_byte, b_byte)
+        self.color = Color(r_byte, g_byte, b_byte)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
@@ -439,7 +501,7 @@ class ColorDetails(Container):
         r = random.randint(0, 255)
         g = random.randint(0, 255)
         b = random.randint(0, 255)
-        self.color = Color.from_rgb(r, g, b)
+        self.color = Color(r, g, b)
         self.notify("Random color generated")
 
     def action_toggle_format(self) -> None:

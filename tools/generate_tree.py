@@ -21,6 +21,9 @@ import os
 import sys
 from fnmatch import fnmatch
 from pathlib import Path
+from typing import List
+from typing import Optional
+from typing import TextIO
 
 
 try:
@@ -122,7 +125,7 @@ DEFAULT_IGNORE = [
 ]
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Generate a beautiful directory tree using Rich")
     parser.add_argument("--path", type=str, help="Directory to generate tree for")
@@ -133,7 +136,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def should_ignore(path, ignore_patterns):
+def should_ignore(path: Path, ignore_patterns: List[str]) -> bool:
     """Check if path should be ignored based on patterns."""
     if not ignore_patterns:
         return False
@@ -156,7 +159,13 @@ def should_ignore(path, ignore_patterns):
     return False
 
 
-def build_directory_tree(directory, tree, ignore_patterns=None, max_depth=None, current_depth=0):
+def build_directory_tree(
+    directory: Path,
+    tree: Tree,
+    ignore_patterns: Optional[List[str]] = None,
+    max_depth: Optional[int] = None,
+    current_depth: int = 0,
+) -> None:
     """Build a Rich Tree representation of the directory structure."""
     if ignore_patterns is None:
         ignore_patterns = []
@@ -184,7 +193,7 @@ def build_directory_tree(directory, tree, ignore_patterns=None, max_depth=None, 
             tree.add(f"[green]{entry.name}[/]")
 
 
-def main():
+def main() -> None:
     """Main function."""
     args = parse_args()
 
@@ -227,7 +236,7 @@ def main():
     print(f"Tree saved to {output_file}")
 
 
-def _tree_rules(f, directory, ignore_patterns, console):
+def _tree_rules(f: TextIO, directory: Path, ignore_patterns: List[str], console: Console) -> None:
     f.write("# Directory Tree\n\n")
     f.write(f"Generated for: {directory}\n\n")
     if ignore_patterns:

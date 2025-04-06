@@ -1,4 +1,5 @@
 from typing import Any
+from typing import Callable
 from typing import ClassVar
 from typing import Dict
 from typing import List
@@ -41,11 +42,11 @@ class InputHandler(Widget):
             input_type: str,
             prompt: str,
             default_value: str = "",
-            validator=None,
-            on_submit=None,
-            on_cancel=None,
-            on_change=None,
-            on_validate=None,
+            validator: Optional[Callable[[str], bool]] = None,
+            on_submit: Optional[Callable[[str], None]] = None,
+            on_cancel: Optional[Callable[[], None]] = None,
+            on_change: Optional[Callable[[str], None]] = None,
+            on_validate: Optional[Callable[[str], Tuple[bool, str]]] = None,
         ) -> None:
             """Initialize input requested message.
 

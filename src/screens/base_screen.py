@@ -64,8 +64,18 @@ class BaseScreen(Screen):
         Binding("ctrl+e", "app.export_palette", "Export palette"),
     ]
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the base screen."""
+    # Instance variables with proper typing
+    error_display: Optional["ErrorDisplay"] = None
+    _status_container: Optional["StatusContainer"] = None
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Initialize the base screen.
+
+        Args:
+            *args: Positional arguments to pass to the parent class
+            **kwargs: Keyword arguments to pass to the parent class
+        """
         super().__init__(*args, **kwargs)
         self.error_display = None
         self._status_container = None

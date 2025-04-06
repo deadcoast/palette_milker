@@ -223,14 +223,29 @@ class ColorPickerScreen(BaseScreen):
         # This would use the system clipboard in a real implementation
         self.notify(f"Copied {self.selected_color.hex} to clipboard", severity="information")
 
-    def on_button_pressed(self, event) -> None:
-        """Handle button press events."""
-        if event.button.id == "back-button":
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        Handle button press events.
+
+        Args:
+            event: The button press event
+        """
+        if event.button and hasattr(event.button, "id") and event.button.id == "back-button":
             self.app.switch_screen("main")
 
-    def on_input_changed(self, event) -> None:
-        """Handle input change events."""
-        if event.input.id == "color-hex-input":
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """
+        Handle input change events.
+
+        Args:
+            event: The input change event
+        """
+        if (
+            hasattr(event, "input")
+            and event.input
+            and hasattr(event.input, "id")
+            and event.input.id == "color-hex-input"
+        ):
             try:
                 # Try to create a color from the input value
                 color = Color(event.value)

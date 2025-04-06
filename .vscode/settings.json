@@ -6,7 +6,7 @@
     "editor.renderWhitespace": "trailing",
     "editor.suggestSelection": "first",
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": null,
     "editor.stickyScroll.enabled": false,
     "editor.bracketPairColorization.enabled": false,
     "editor.cursorSmoothCaretAnimation": "on",
@@ -23,7 +23,11 @@
         "**/.classpath": true,
         "**/.project": true,
         "**/.settings": true,
-        "**/.factorypath": true
+        "**/.factorypath": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/.mypy_cache": true,
+        "**/.ruff_cache": true
     },
     "files.associations": {
         "*.pyx": "cython",
@@ -37,15 +41,13 @@
     "files.trimTrailingWhitespace": true,
     "workbench.startupEditor": "none",
     "workbench.editorAssociations": {
-        "*.ipynb": "jupyter-notebook",
-        "*.svg": "svgPreviewer.customEditor"
+        "*.ipynb": "jupyter-notebook"
     },
     "workbench.colorTheme": "Default Dark+",
     "git.enableSmartCommit": true,
     "git.autofetch": true,
     "git.confirmSync": false,
     "git.openRepositoryInParentFolders": "always",
-    "partialDiff.enableTelemetry": false,
     "prettier.tabWidth": 4,
     "prettier.singleQuote": true,
     "prettier.jsxSingleQuote": true,
@@ -79,7 +81,6 @@
     "[toml]": {
         "editor.wordWrap": "wordWrapColumn",
         "editor.wordWrapColumn": 120,
-        "editor.defaultFormatter": "tamasfe.even-better-toml",
         "editor.formatOnSave": true
     },
     "better-comments.tags": [
@@ -100,7 +101,6 @@
             "color": "#77C3EC"
         }
     ],
-    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
     "codesnap.showWindowControls": false,
     "codesnap.shutterAction": "copy",
     "Workspace_Formatter.excludePattern": [
@@ -109,35 +109,91 @@
         "**/.vscode",
         "**/html"
     ],
-    "svg.preview.autoOpen": true,
     "remote.WSL.fileWatcher.polling": true,
     "errorLens.delay": 1000,
     "errorLens.enabledDiagnosticLevels": [
         "error",
         "warning"
     ],
-    "errorLens.enabled": false,
+    "errorLens.enabled": true,
+
+    // Python settings
     "[python]": {
-        "editor.formatOnSave": false,
+        "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.formatOnType": false
+        "editor.formatOnType": true,
+        "editor.formatOnPaste": false,
+        "editor.formatOnSaveMode": "file",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        },
+        "editor.rulers": [120],
+        "editor.wordWrapColumn": 120
     },
+
+    // Python Language Server - Pyright
     "python.languageServer": "Cursor Pyright",
-    "python.analysis.addImport.exactMatchOnly": true,
-    "python.analysis.autoImportCompletions": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": ["src"],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportPrivateImportUsage": "warning",
+        "reportImportCycles": "warning",
+        "reportUnusedImport": "warning",
+        "reportUnusedFunction": "warning",
+        "reportUnusedVariable": "warning"
+    },
+    "python.analysis.autoImportCompletions": true,
     "python.analysis.completeFunctionParens": false,
-    "python.analysis.autoFormatStrings": true,
-    "python.analysis.logLevel": "Error",
-    "python.createEnvironment.contentButton": "show",
-    "python.missingPackage.severity": "Error",
-    "mypy-type-checker.importStrategy": "fromEnvironment",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.variableTypes": true,
+
+    // Black formatter
+    "black-formatter.args": ["--line-length=120"],
     "black-formatter.importStrategy": "fromEnvironment",
+
+    // isort configuration
+    "isort.args": ["--profile=black", "--line-length=120"],
     "isort.check": true,
     "isort.importStrategy": "fromEnvironment",
-    "ruff.organizeImports": false,
-    "ruff.fixAll": false,
+
+    // Ruff configuration
+    "ruff.enable": true,
+    "ruff.nativeServer": "on",
+    "ruff.fixAll": true,
+    "ruff.lint.enable": true,
+
+    // mypy configuration
+    "mypy-type-checker.args": [
+        "--ignore-missing-imports",
+        "--disallow-untyped-defs",
+        "--disallow-incomplete-defs",
+        "--check-untyped-defs",
+        "--disallow-untyped-decorators",
+        "--no-implicit-optional",
+        "--warn-redundant-casts",
+        "--warn-return-any"
+    ],
+    "mypy-type-checker.importStrategy": "fromEnvironment",
+    "mypy-type-checker.severity": {
+        "error": "Error",
+        "note": "Information"
+    },
+
+    // Sourcery configuration
+    "sourcery.token": "",
+    "sourcery.enableExtension": true,
+    "sourcery.inlineDecorators": true,
+
+    // Docstring settings
     "autoDocstring.generateDocstringOnEnter": true,
     "autoDocstring.quoteStyle": "'''",
+    "autoDocstring.docstringFormat": "google",
+    "autoDocstring.includeExtendedSummary": false,
+
+    // Jupyter settings
     "jupyter.interactiveWindow.creationMode": "perFile",
     "jupyter.askForKernelRestart": false,
     "jupyter.themeMatplotlibPlots": true,
@@ -147,6 +203,8 @@
     "notebook.compactView": false,
     "notebook.diff.ignoreMetadata": true,
     "notebook.diff.ignoreOutputs": true,
+
+    // Markdown validation for Textual docs
     "markdown.validate.ignoredLinks": [
         "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Design%20a%20Layout.md",
         "/Users/deadcoast/Documents/milky_suite/Textual-Docs/How%20To/Textual%20-%20Center%20things.md",

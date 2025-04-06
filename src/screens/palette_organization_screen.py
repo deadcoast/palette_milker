@@ -16,6 +16,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.containers import ScrollableContainer
+from textual.events import Click
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -275,10 +276,18 @@ class PaletteOrganizationScreen(Screen):
                 # Ignore if the card doesn't exist
                 pass
 
-    def on_container_click(self, event) -> None:
-        """Handle clicks on palette cards."""
-        # Check if this is a palette card
+    def on_container_click(self, event: Click) -> None:
+        """
+        Handle clicks on palette cards.
+
+        Args:
+            event: The click event
+        """
+        # Get the widget that was clicked
         container = event.widget
+        if not isinstance(container, Container):
+            return
+
         container_id = container.id
 
         if not container_id or not container_id.startswith("palette-"):

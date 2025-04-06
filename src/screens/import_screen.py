@@ -80,6 +80,16 @@ class ImportScreen(BaseScreen):
 
     CSS_PATH = "import_screen.tcss"  # Define styles in a separate file
 
+    def __init__(self) -> None:
+        """Initialize the import screen."""
+        super().__init__()
+
+        # Initialize variables
+        self._imported_palette: Optional[Dict[str, Any]] = None  # Stores the currently imported palette
+
+        # Default UI state
+        self._import_status = "Awaiting import"
+
     def compose(self) -> ComposeResult:
         """Compose the import screen UI."""
         # Include base components (error display and status container)
@@ -164,7 +174,16 @@ class ImportScreen(BaseScreen):
     def _process_import_file(self, file_path: str) -> None:
         """Process the imported file."""
 
-        def import_operation():
+        def import_operation() -> Dict[str, Any]:
+            """
+            Import a palette file.
+
+            Returns:
+                Dictionary containing the imported palette data
+
+            Raises:
+                ValueError: If the import fails
+            """
             # Import the file and get result directly
             success, result = import_palette_from_file(file_path)
 
@@ -172,6 +191,8 @@ class ImportScreen(BaseScreen):
                 # If the import failed, raise an exception to trigger error handling
                 raise ValueError(str(result))
 
+            # At this point, result must be a Dict because success is True
+            assert isinstance(result, dict), "Expected dictionary result when success is True"
             return result  # This is the palette dictionary
 
         # Use the try_operation method from BaseScreen
@@ -190,7 +211,13 @@ class ImportScreen(BaseScreen):
     def _process_clipboard_content(self, content: str) -> None:
         """Process clipboard content to extract colors."""
 
-        def process_operation():
+        def process_operation() -> Dict[str, Any]:
+            """
+            Process clipboard content to extract colors.
+
+            Returns:
+                Dictionary containing the extracted palette data
+            """
             # Extract colors from the content
             import re
 
@@ -230,8 +257,14 @@ class ImportScreen(BaseScreen):
     def action_add_to_palettes(self) -> None:
         """Add the imported palette to the user's palettes."""
 
-        def add_operation():
-            if not hasattr(self, "_imported_palette"):
+        def add_operation() -> Dict[str, Any]:
+            """
+            Add the imported palette to the user's palettes.
+
+            Returns:
+                Dictionary containing the added palette data
+            """
+            if self._imported_palette is None:
                 raise ValueError("No palette to add")
 
             # Send a message to the app with the imported palette
@@ -243,9 +276,57 @@ class ImportScreen(BaseScreen):
             operation=add_operation,
             error_message="Failed to add palette to collection",
             success_message="Palette added to your collection!",
-            context={"palette_name": getattr(self, "_imported_palette", {}).get("name", "Unknown")},
+            context={
+                "palette_name": self._imported_palette.get("name", "Unknown") if self._imported_palette else "Unknown"
+            },
         )
 
         if success:
             # Return to the main screen after a delay
             self.app.switch_screen("main")
+
+    def _display_palette_preview(self, palette: Dict[str, Any]) -> None:
+        """
+        Display the palette preview.
+
+        Args:
+            palette: Dictionary containing palette data with 'name' and 'colors' keys
+        """
+        # Store the imported palette for later use
+        self._imported_palette = palette
+
+        # Update the palette name display
+        palette_name = palette.get("name", "Unnamed Palette")
+        palette_name_widget = self.query_one("#palette-name", Static)
+        palette_name_widget.update(palette_name)
+
+        # Find the palette preview container
+        preview_container = self.query_one("#palette-preview", Container)
+
+        # Clear existing swatches
+        for child in list(preview_container.children):
+            if isinstance(child, Static) and "color-swatch" in child.classes:
+                child.remove()
+
+        # Add swatches for each color in the palette
+        colors = palette.get("colors", [])
+        for color in colors:
+            # Create a swatch for each color
+            swatch = Static(color, classes="color-swatch")
+            swatch.styles.background = color
+
+            # Add to preview container
+            preview_container.mount(swatch)
+
+        # Show the palette information
+        color_count = len(colors)
+        info_widget = self.query_one("#palette-info", Static)
+        info_widget.update(f"Contains {color_count} colors")
+
+    def action_import_clipboard(self) -> None:
+        """Import colors from the clipboard."""
+        # In a real implementation, we'd access the system clipboard
+        # For demonstration, use a sample content
+        sample_content = "#FF5733 #33FF57 #5733FF #F3F3F3"
+        self._process_clipboard_content(sample_content)
+        self.show_status("Clipboard content processed", "info")
